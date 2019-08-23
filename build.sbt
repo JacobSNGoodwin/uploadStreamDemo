@@ -2,6 +2,12 @@ name := "uploadStreamDemo"
 ThisBuild / version := "0.1"
 ThisBuild / scalaVersion := "2.12.8"
 
+lazy val global = (project in file("."))
+  .settings(
+    name := "root"
+  )
+  .aggregate(pub, sub)
+
 lazy val pub = (project in file("pub-client"))
   .settings(
     name := "pub",
@@ -13,8 +19,7 @@ lazy val sub = (project in file("sub-service"))
   .settings(
     name := "sub",
     libraryDependencies ++= commonDependencies ++ Seq(
-      dependencies.akkaActor
-    )
+      )
   )
 
 lazy val dependencies = new {
@@ -27,5 +32,5 @@ lazy val dependencies = new {
 
 // add common dependencies here
 lazy val commonDependencies = Seq(
-  // add common dependencies to projects here
+  dependencies.akkaActor
 )
