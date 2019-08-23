@@ -32,13 +32,16 @@ object Main extends App {
 
 //  val encodedMessage = new String(Base64.getEncoder.encode("Hello Google!".getBytes))
   val message1 = new String(Base64.getEncoder.encode("Message1".getBytes))
+  val data1 = Map("userId" -> "1")
   val message2 = new String(Base64.getEncoder.encode("Message2".getBytes))
+  val data2 = Map("userId" -> "1")
   val message3 = new String(Base64.getEncoder.encode("Message3".getBytes))
+  val data3 = Map("userId" -> "2")
 
 //  val publishMessage =
 //    PubSubMessage(encodedMessage)
 
-  val publishMessages = Seq(PubSubMessage(message1), PubSubMessage(message2), PubSubMessage(message3))
+  val publishMessages = Seq(PubSubMessage(message1, data1), PubSubMessage(message2, data2), PubSubMessage(message3, data3))
 
   val publishRequest = PublishRequest(publishMessages)
 
