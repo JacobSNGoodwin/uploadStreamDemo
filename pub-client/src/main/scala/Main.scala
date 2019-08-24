@@ -38,28 +38,26 @@ object Main extends App {
   val message3 = new String(Base64.getEncoder.encode("Message3".getBytes))
   val data3 = Map("userId" -> "2")
 
-//  val publishMessage =
-//    PubSubMessage(encodedMessage)
 
   val publishMessages = Seq(PubSubMessage(message1, data1), PubSubMessage(message2, data2), PubSubMessage(message3, data3))
 
-  val publishRequest = PublishRequest(publishMessages)
-
-
-  val source: Source[PublishRequest, NotUsed] = Source.single(publishRequest)
-
   val publishFlow: Flow[PublishRequest, Seq[String], NotUsed] = GooglePubSub.publish(topic, config)
 
-  val publishedMessageIds: Future[Seq[Seq[String]]] = source.via(publishFlow).runWith(Sink.seq)
+  //  // Send as flow
+  //  val publishRequest = PublishRequest(publishMessages)
+  //  val source: Source[PublishRequest, NotUsed] = Source.single(publishRequest)
+  //  val publishedMessageIds: Future[Seq[Seq[String]]] = source.via(publishFlow).runWith(Sink.seq)
 
 
+
+  // Send as batch
+  val messageSource: Source[PubSubMessage, NotUsed] = Source(publishMessages)
+  val publishedMessageIds = messageSource.groupedWithin(1000, 1.minute).map(PublishRequest.apply).via(publishFlow).runWith(Sink.seq)
 
   publishedMessageIds onComplete {
     case Success(data) => for (ids <- data) println(ids)
     case Failure(t) => println("error getting published messageId", t.getMessage)
   }
-
-
 
   try
     StdIn.readLine()
