@@ -30,47 +30,44 @@ object Main extends App {
 
   val config = PubSubConfig(projectId, clientEmail, privateKey)
 
-  def messagePrompts(): Unit = {
-    println(
-      """
-        |Welcome to this fine and dandy Google Cloud PubSub Publisher client. Please follow the prompts!
-        |""".stripMargin)
 
-    @tailrec
-    def promptLoop(): Unit = {
-      val topic = io.StdIn.readLine("Enter a Topic > ")
-      val message = io.StdIn.readLine("Enter a Message > ")
-      val groupId = io.StdIn.readLine("Enter a groupId > ")
-      val deviceId = io.StdIn.readLine("Enter a deviceId > ")
+  println(
+    """
+      |Welcome to this fine and dandy Google Cloud PubSub Publisher client. Please follow the prompts!
+      |""".stripMargin)
 
-      val publishMessage = PubSubMessage(
-        new String(Base64.getEncoder.encode(message.getBytes)),
-        Map("groupId" -> groupId, "deviceId" -> deviceId)
-      )
-      val publishRequest = PublishRequest(Seq(publishMessage))
-      val source: Source[PublishRequest, NotUsed] = Source.single(publishRequest)
-      val publishFlow: Flow[PublishRequest, Seq[String], NotUsed] = GooglePubSub.publish(topic, config)
-      val publishedMessageIds: Future[Seq[Seq[String]]] = source.via(publishFlow).runWith(Sink.seq)
+  @tailrec
+  def promptLoop(): Unit = {
+    val topic = io.StdIn.readLine("Enter a Topic > ")
+    val message = io.StdIn.readLine("Enter a Message > ")
+    val groupId = io.StdIn.readLine("Enter a groupId > ")
+    val deviceId = io.StdIn.readLine("Enter a deviceId > ")
 
-
-
-      try {
-        val result = Await.result(publishedMessageIds, 3 second)
-        println(s"Message published with the following id: ${result}")
-      } catch {
-        case t: Throwable => println(s"Error publishing message: ${t.getMessage}")
-      }
-
-      val rePrompt = io.StdIn.readLine("Would you like to publish another message? (y to continue, other to exit) > ")
-      rePrompt match {
-        case "y" | "Y" => promptLoop()
-        case _ => system.terminate()
-      }
+    val publishMessage = PubSubMessage(
+      new String(Base64.getEncoder.encode(message.getBytes)),
+      Map("groupId" -> groupId, "deviceId" -> deviceId)
+    )
+    val publishRequest = PublishRequest(Seq(publishMessage))
+    val source: Source[PublishRequest, NotUsed] = Source.single(publishRequest)
+    val publishFlow: Flow[PublishRequest, Seq[String], NotUsed] = GooglePubSub.publish(topic, config)
+    val publishedMessageIds: Future[Seq[Seq[String]]] = source.via(publishFlow).runWith(Sink.seq)
+    
+    try {
+      val result = Await.result(publishedMessageIds, 3 second)
+      println(s"Message published with the following id: ${result}")
+    } catch {
+      case t: Throwable => println(s"Error publishing message: ${t.getMessage}")
     }
 
-    promptLoop()
+
+    val rePrompt = io.StdIn.readLine("Would you like to publish another message? (y to continue, other to exit) > ")
+    rePrompt match {
+      case "y" | "Y" => promptLoop()
+      case _ =>
+        println("Thank you, come again!")
+    }
   }
 
-  // begin prompt loop
-  messagePrompts()
+  promptLoop()
+  system.terminate()
 }
