@@ -2,6 +2,7 @@ import java.util.Base64
 
 import akka.NotUsed
 import akka.actor.ActorSystem
+import akka.event.Logging
 import akka.stream.ActorMaterializer
 import akka.stream.alpakka.googlecloud.pubsub._
 import akka.stream.alpakka.googlecloud.pubsub.scaladsl.GooglePubSub
@@ -18,6 +19,8 @@ import scala.util.{Failure, Success}
 object Main extends App {
   implicit val system = ActorSystem()
   implicit val mat = ActorMaterializer()
+
+  implicit val log = Logging(system, "publishLogger")
 
   val privateKey = system.settings.config.getString("gcConfig.key").replace("\\n", "\n")
 
@@ -52,6 +55,7 @@ object Main extends App {
       try {
         val result = Await.result(publishedMessageIds, 3 second)
         println(s"Message published with the following id: ${result}")
+        log.info("Message published to the following ID: {}", result)
       } catch {
         case t: Throwable => println(s"Error publishing message: ${t.getMessage}")
       }
