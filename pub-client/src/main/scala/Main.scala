@@ -6,6 +6,7 @@ import akka.event.Logging
 import akka.stream.ActorMaterializer
 import akka.stream.alpakka.googlecloud.pubsub._
 import akka.stream.alpakka.googlecloud.pubsub.scaladsl.GooglePubSub
+import akka.stream.Attributes
 import akka.stream.scaladsl.{Flow, Sink, Source}
 
 import scala.annotation.tailrec
@@ -50,6 +51,11 @@ object Main extends App {
       val source: Source[PublishRequest, NotUsed] = Source.single(publishRequest)
       val publishFlow: Flow[PublishRequest, Seq[String], NotUsed] = GooglePubSub.publish(topic, config)
       val publishedMessageIds: Future[Seq[Seq[String]]] = source.via(publishFlow).runWith(Sink.seq)
+      source.log("before-map")
+        .withAttributes(Attributes
+
+          .logLevels(onElement = Logging.WarningLevel, onFinish = Logging.InfoLevel, onFailure = Logging.DebugLevel))
+
 
 
       try {

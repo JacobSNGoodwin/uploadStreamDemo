@@ -23,7 +23,7 @@ lazy val sub = (project in file("sub-service"))
   )
 
 lazy val dependencies = new {
-  val akkaActorV = "2.5.6"
+  val akkaActorV = "2.5.25"
   val alpakkaPubSubV = "1.1.1"
   val akkaSlf4jV = "2.5.25"
   val logbackV = "1.2.3"
