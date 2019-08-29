@@ -38,22 +38,25 @@ object Main extends App {
   val bufferSize = 10
   val elementsToProcess = 5
 
-  val (queue, newSource) = Source.queue[(PublishRequest, String)](bufferSize, OverflowStrategy.backpressure)
+  // how to setup a flow dynamically in a queue?
+  // why not just materialize with .run()... isn't it the same, except that you don't have a new source?
+  val (queue, newSource) = Source
+    .queue[(String, String)](bufferSize, OverflowStrategy.backpressure)
     .throttle(elementsToProcess, 3.second)
-    .map((messageData) => GooglePubSub.publish(messageData._2, config))
     .preMaterialize()
 
+  newSource.runWith(Sink.seq)
 
   @tailrec
   def promptLoop(): Unit = {
     val topic = io.StdIn.readLine("Enter a Topic > ")
     val message = io.StdIn.readLine("Enter a Message > ")
-    val groupId = io.StdIn.readLine("Enter a groupId > ")
-    val deviceId = io.StdIn.readLine("Enter a deviceId > ")
+//    val groupId = io.StdIn.readLine("Enter a groupId > ")
+//    val deviceId = io.StdIn.readLine("Enter a deviceId > ")
 
     val publishMessage = PubSubMessage(
       new String(Base64.getEncoder.encode(message.getBytes)),
-      Map("groupId" -> groupId, "deviceId" -> deviceId)
+//      Map("groupId" -> groupId, "deviceId" -> deviceId)
     )
     val publishRequest = PublishRequest(Seq(publishMessage))
 
@@ -62,13 +65,14 @@ object Main extends App {
 
     source
       .mapAsync(1)(req => {
-      queue.offer((req, topic)).map {
+      queue.offer((message, topic)).map {
         case QueueOfferResult.Enqueued    => println(s"enqueued $req")
         case QueueOfferResult.Dropped     => println(s"dropped $req")
         case QueueOfferResult.Failure(ex) => println(s"Offer failed ${ex.getMessage}")
         case QueueOfferResult.QueueClosed => println("Source Queue closed")
       }
     })
+      .runWith(Sink.ignore)
 
     val rePrompt = io.StdIn.readLine("Would you like to publish another message? (y to continue, other to exit) > ")
     rePrompt match {
