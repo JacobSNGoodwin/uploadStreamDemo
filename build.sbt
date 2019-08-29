@@ -23,20 +23,21 @@ lazy val sub = (project in file("sub-service"))
   )
 
 lazy val dependencies = new {
-  val akkaActorV = "2.5.25"
+  val akkaV = "2.5.25"
   val alpakkaPubSubV = "1.1.1"
-  val akkaSlf4jV = "2.5.25"
   val logbackV = "1.2.3"
 
-  val akkaActor = "com.typesafe.akka" %% "akka-actor" % akkaActorV
+  val akkaActor = "com.typesafe.akka" %% "akka-actor" % akkaV
+  val akkaStreams = "com.typesafe.akka" %% "akka-stream" % akkaV
   val alpakkaPubSub = "com.lightbend.akka" %% "akka-stream-alpakka-google-cloud-pub-sub" % alpakkaPubSubV
-  val akkaSlf4j = "com.typesafe.akka" %% "akka-slf4j" % akkaSlf4jV
+  val akkaSlf4j = "com.typesafe.akka" %% "akka-slf4j" % akkaV
   val logback = "ch.qos.logback" % "logback-classic" % logbackV
 }
 
 // add common dependencies here
 lazy val commonDependencies = Seq(
   dependencies.akkaActor,
+  dependencies.akkaStreams,
   dependencies.akkaSlf4j,
   dependencies.logback
 )

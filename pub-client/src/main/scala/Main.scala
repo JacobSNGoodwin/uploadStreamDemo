@@ -51,17 +51,12 @@ object Main extends App {
       val source: Source[PublishRequest, NotUsed] = Source.single(publishRequest)
       val publishFlow: Flow[PublishRequest, Seq[String], NotUsed] = GooglePubSub.publish(topic, config)
       val publishedMessageIds: Future[Seq[Seq[String]]] = source.via(publishFlow).runWith(Sink.seq)
-      source.log("before-map")
-        .withAttributes(Attributes
-
-          .logLevels(onElement = Logging.WarningLevel, onFinish = Logging.InfoLevel, onFailure = Logging.DebugLevel))
 
 
 
       try {
         val result = Await.result(publishedMessageIds, 3 second)
         println(s"Message published with the following id: ${result}")
-        log.info("Message published to the following ID: {}", result)
       } catch {
         case t: Throwable => println(s"Error publishing message: ${t.getMessage}")
       }
