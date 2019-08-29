@@ -1,7 +1,7 @@
 <configuration scan="true" scanPeriod="10 seconds">
     <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
-            <pattern>%d{ISO8601,UTC} %-5level %logger{12} %X{akkaTimestamp} %X{akkaSource} - %msg%n%xEx{full}</pattern>
+            <pattern>%d{ISO8601,UTC} %-5level %logger{100} %X{akkaTimestamp} %X{akkaSource} - %msg%n%xEx{full}</pattern>
         </encoder>
     </appender>
 
