@@ -38,6 +38,7 @@ object Main extends App {
   val bufferSize = 10
   val elementsToProcess = 5
 
+
   // how to pass topic into via?
   // it the same, except that you don't have a new source?
   val (queue, newSource) = Source
@@ -47,11 +48,12 @@ object Main extends App {
         PubSubMessage(new String(Base64.getEncoder.encode(messageInfo._1.getBytes)))
       PublishRequest(Seq(publishMessage))
     })
+    // how to get messageInfo._2 down there while still having transformed Source?
     .via(GooglePubSub.publish("topic1", config))
     .throttle(elementsToProcess, 3.second)
     .preMaterialize()
 
-
+  newSource.runWith(Sink.seq)
 
   @tailrec
   def promptLoop(): Unit = {
@@ -63,8 +65,8 @@ object Main extends App {
     source
       .mapAsync(1)(req => {
       queue.offer((message, topic)).map {
-        case QueueOfferResult.Enqueued    => println(s"enqueued $req")
-        case QueueOfferResult.Dropped     => println(s"dropped $req")
+        case QueueOfferResult.Enqueued    => println(s"enqueued message: $message, topic: $topic")
+        case QueueOfferResult.Dropped     => println(s"dropped message: $message, topic: $topic")
         case QueueOfferResult.Failure(ex) => println(s"Offer failed ${ex.getMessage}")
         case QueueOfferResult.QueueClosed => println("Source Queue closed")
       }
