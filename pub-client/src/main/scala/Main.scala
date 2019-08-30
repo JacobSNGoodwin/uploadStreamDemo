@@ -38,30 +38,27 @@ object Main extends App {
   val bufferSize = 10
   val elementsToProcess = 5
 
-  // how to setup a flow dynamically in a queue?
-  // why not just materialize with .run()... isn't it the same, except that you don't have a new source?
+  // how to pass topic into via?
+  // it the same, except that you don't have a new source?
   val (queue, newSource) = Source
     .queue[(String, String)](bufferSize, OverflowStrategy.backpressure)
+    .map(messageInfo => {
+      val publishMessage =
+        PubSubMessage(new String(Base64.getEncoder.encode(messageInfo._1.getBytes)))
+      PublishRequest(Seq(publishMessage))
+    })
+    .via(GooglePubSub.publish("topic1", config))
     .throttle(elementsToProcess, 3.second)
     .preMaterialize()
 
-  newSource.runWith(Sink.seq)
+
 
   @tailrec
   def promptLoop(): Unit = {
     val topic = io.StdIn.readLine("Enter a Topic > ")
     val message = io.StdIn.readLine("Enter a Message > ")
-//    val groupId = io.StdIn.readLine("Enter a groupId > ")
-//    val deviceId = io.StdIn.readLine("Enter a deviceId > ")
 
-    val publishMessage = PubSubMessage(
-      new String(Base64.getEncoder.encode(message.getBytes)),
-//      Map("groupId" -> groupId, "deviceId" -> deviceId)
-    )
-    val publishRequest = PublishRequest(Seq(publishMessage))
-
-    // source will be queued as tuple
-    val source: Source[PublishRequest, NotUsed] = Source.single(publishRequest)
+    val source: Source[(String, String), NotUsed] = Source.single((message, topic))
 
     source
       .mapAsync(1)(req => {
