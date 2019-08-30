@@ -12,7 +12,6 @@ lazy val pub = (project in file("pub-client"))
   .settings(
     name := "pub",
     libraryDependencies ++= commonDependencies ++ Seq(
-      dependencies.alpakkaPubSub
     )
   )
 lazy val sub = (project in file("sub-service"))
@@ -39,5 +38,6 @@ lazy val commonDependencies = Seq(
   dependencies.akkaActor,
   dependencies.akkaStreams,
   dependencies.akkaSlf4j,
-  dependencies.logback
+  dependencies.logback,
+  dependencies.alpakkaPubSub
 )
