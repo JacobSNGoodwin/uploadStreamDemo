@@ -12,6 +12,7 @@ import scala.annotation.tailrec
 import scala.collection.immutable.Seq
 import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
+import scala.util.{Failure, Success}
 
 
 object Main extends App {
@@ -28,50 +29,50 @@ object Main extends App {
 
   val config = PubSubConfig(projectId, clientEmail, privateKey)
 
-
   println(
     """
       |Welcome to this fine and dandy Google Cloud PubSub Publisher client. Please follow the prompts!
       |""".stripMargin)
 
-  // use a queue for demonstration purposes -
+
+  val gcFlow: Flow[(String, String), PublishRequest, NotUsed] = Flow[(String, String)]
+    .map(messageData => {
+      PublishRequest(Seq(
+        PubSubMessage(new String(Base64.getEncoder.encode(messageData._1.getBytes))))
+      )
+    })
+
+
   val bufferSize = 10
   val elementsToProcess = 5
 
-
-  // how to pass topic into via?
-  // it the same, except that you don't have a new source?
+  // newSource is a Source[PublishRequest, NotUsed]
   val (queue, newSource) = Source
     .queue[(String, String)](bufferSize, OverflowStrategy.backpressure)
-    .map(messageInfo => {
-      val publishMessage =
-        PubSubMessage(new String(Base64.getEncoder.encode(messageInfo._1.getBytes)))
-      PublishRequest(Seq(publishMessage))
-    })
-    // how to get messageInfo._2 down there while still having transformed Source?
-    .via(GooglePubSub.publish("topic1", config))
-    .throttle(elementsToProcess, 3.second)
+    .via(gcFlow)
     .preMaterialize()
 
-  newSource.runWith(Sink.seq)
+
+  val result = newSource.runForeach(println)
+
+//  result onComplete {
+//    case Success(ids) => println(ids)
+//    case Failure(exception) => log.error("Could not process message: " + exception.getMessage)
+//  }
+
 
   @tailrec
   def promptLoop(): Unit = {
     val topic = io.StdIn.readLine("Enter a Topic > ")
     val message = io.StdIn.readLine("Enter a Message > ")
 
-    val source: Source[(String, String), NotUsed] = Source.single((message, topic))
+    queue.offer((message, topic)).map {
+//      case QueueOfferResult.Enqueued    => println(s"enqueued message: $message, topic: $topic")
+      case QueueOfferResult.Dropped     => println(s"dropped message: $message, topic: $topic")
+      case QueueOfferResult.Failure(ex) => println(s"Offer failed ${ex.getMessage}")
+      case QueueOfferResult.QueueClosed => println("Source Queue closed")
+    }
 
-    source
-      .mapAsync(1)(req => {
-      queue.offer((message, topic)).map {
-        case QueueOfferResult.Enqueued    => println(s"enqueued message: $message, topic: $topic")
-        case QueueOfferResult.Dropped     => println(s"dropped message: $message, topic: $topic")
-        case QueueOfferResult.Failure(ex) => println(s"Offer failed ${ex.getMessage}")
-        case QueueOfferResult.QueueClosed => println("Source Queue closed")
-      }
-    })
-      .runWith(Sink.ignore)
 
     val rePrompt = io.StdIn.readLine("Would you like to publish another message? (y to continue, other to exit) > ")
     rePrompt match {
