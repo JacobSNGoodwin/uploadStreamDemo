@@ -36,7 +36,14 @@ object Main extends App {
   def topicLoop(): Unit = {
     val topic = io.StdIn.readLine("Enter a Topic > ")
 
-    // Create flow and queue based on entered topic
+    /*
+      Create flow and queue based on entered topic
+
+      Note that a queue doesn't really help performance in this client, as we publish
+      a single message and await its response. However, this is to demonstrate who a queue
+      could be established which many messages could be passed through.
+    */
+
       val gcFlow: Flow[String, Seq[String], NotUsed] = Flow[String]
         .map(messageData => {
           PublishRequest(Seq(
@@ -47,21 +54,14 @@ object Main extends App {
 
 
       val bufferSize = 10
-      val elementsToProcess = 5
 
-      // newSource is a Source[PublishRequest, NotUsed]
       val (queue, newSource) = Source
         .queue[String](bufferSize, OverflowStrategy.backpressure)
         .via(gcFlow)
         .preMaterialize()
 
 
-      newSource.runForeach(println)
-
-//      result onComplete {
-//        case Success(ids) => println(ids)
-//        case Failure(exception) => log.error("Could not process message: " + exception.getMessage)
-//      }
+      val response = newSource.runWith(Sink.seq)
 
       messageLoop()
 
@@ -74,11 +74,12 @@ object Main extends App {
       val message = s"$groupId-$deviceId"
 
       queue.offer(message).map {
-        case QueueOfferResult.Enqueued    => println(s"enqueued message: $message, topic: $topic")
+//        case QueueOfferResult.Enqueued    => println(s"enqueued message: $message, topic: $topic")
         case QueueOfferResult.Dropped     => println(s"dropped message: $message")
         case QueueOfferResult.Failure(ex) => println(s"Offer failed ${ex.getMessage}")
         case QueueOfferResult.QueueClosed => println("Source Queue closed")
       }
+
 
 
       val rePrompt = io.StdIn.readLine(s"Would you like to publish another message to topic '${topic}'? (y to continue, other to exit) > ")
