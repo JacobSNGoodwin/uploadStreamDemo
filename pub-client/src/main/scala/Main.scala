@@ -32,6 +32,7 @@ object Main extends App {
       |Welcome to this fine and dandy Google Cloud PubSub Publisher client. Please follow the prompts!
       |""".stripMargin)
 
+  topicLoop()
 
   def topicLoop(): Unit = {
     val topic = io.StdIn.readLine("Enter a Topic > ")
@@ -44,29 +45,36 @@ object Main extends App {
       could be established which many messages could be passed through.
     */
 
-      val gcFlow: Flow[String, Seq[String], NotUsed] = Flow[String]
-        .map(messageData => {
-          PublishRequest(Seq(
-            PubSubMessage(new String(Base64.getEncoder.encode(messageData.getBytes))))
-          )
-        })
-        .via(GooglePubSub.publish(topic, config))
+    val gcFlow: Flow[String, Seq[String], NotUsed] = Flow[String]
+      .map(messageData => {
+        PublishRequest(Seq(
+          PubSubMessage(new String(Base64.getEncoder.encode(messageData.getBytes))))
+        )
+      })
+      .via(GooglePubSub.publish(topic, config))
 
 
-      val bufferSize = 10
+    val bufferSize = 10
 
-      val (queue, newSource) = Source
-        .queue[String](bufferSize, OverflowStrategy.backpressure)
-        .via(gcFlow)
-        .preMaterialize()
+    val (queue, newSource) = Source
+      .queue[String](bufferSize, OverflowStrategy.backpressure)
+      .via(gcFlow)
+      .preMaterialize()
+
+    newSource
+      .recover {
+        case e: Throwable => println(s"\nFailed to publish message to PubSub: ${e.getMessage}")
+      }
+      .runForeach(response => {
+        if (response.asInstanceOf[Seq[String]].length == 0) println(s"No message published")
+        else println(s"\nPublished Message IDs: ${response}")
+      })
 
 
-      val response = newSource.runWith(Sink.seq)
+    // initial call of message loop to queue up messages
+    getNewMessage()
 
-      messageLoop()
-
-    @tailrec
-    def messageLoop(): Unit = {
+    def getNewMessage(): Unit = {
       println(s"A message will be created and sent to '${topic}' based on the groupId and deviceId entered below.")
       val groupId = io.StdIn.readLine("Please provide the groupId  > ")
       val deviceId = io.StdIn.readLine("Please provide the deviceId > ")
@@ -80,26 +88,25 @@ object Main extends App {
         case QueueOfferResult.QueueClosed => println("Source Queue closed")
       }
 
-
-
-      val rePrompt = io.StdIn.readLine(s"Would you like to publish another message to topic '${topic}'? (y to continue, other to exit) > ")
+      val rePrompt = io.StdIn.readLine(s"Would you like to publish another message to '$topic'? (y to continue, other to exit) > ")
       rePrompt match {
-        case "y" | "Y" => messageLoop()
+        case "y" | "Y" => getNewMessage()
         case _ =>
           println()
       }
     }
 
+
+
     val rePrompt = io.StdIn.readLine("Would you like to publish to another topic? (y to continue, other to exit) > ")
     rePrompt match {
       case "y" | "Y" => topicLoop()
       case _ =>
+        queue.complete()
         println("Thank you, come again!")
     }
 
   }
 
-
-  topicLoop()
   system.terminate()
 }
