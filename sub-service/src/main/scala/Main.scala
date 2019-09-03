@@ -34,9 +34,9 @@ object Main extends App {
 
       message.ackId
     })
-    .groupedWithin(1000, 1.minute)
+    .groupedWithin(6, 1.minute)
     .map(AcknowledgeRequest.apply)
-    .to(ackSink)
+    .to(ackSink).run()
 
   try {
     io.StdIn.readLine()
