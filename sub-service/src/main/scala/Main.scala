@@ -1,10 +1,13 @@
+import java.time.Instant
+import java.util.Base64
+
 import akka.{Done, NotUsed}
 import akka.actor.ActorSystem
 import akka.event.Logging
 import akka.stream.ActorMaterializer
-import akka.stream.alpakka.googlecloud.pubsub.{AcknowledgeRequest, PubSubConfig, ReceivedMessage}
+import akka.stream.alpakka.googlecloud.pubsub.{AcknowledgeRequest, PubSubConfig, PublishRequest, ReceivedMessage}
 import akka.stream.alpakka.googlecloud.pubsub.scaladsl.GooglePubSub
-import akka.stream.scaladsl.{Sink, Source}
+import akka.stream.scaladsl.{Flow, Sink, Source}
 
 import scala.concurrent.Future
 import scala.concurrent.duration._
@@ -28,15 +31,26 @@ object Main extends App {
   val ackSink: Sink[AcknowledgeRequest, Future[Done]] =
     GooglePubSub.acknowledge("subscription1", config)
 
-  subscriptionSource
-    .map(message => {
-      println(message.ackId, message.message)
+  val decodeMessageSink: Sink[ReceivedMessage, Future[Done]] = Sink.foreach[ReceivedMessage](resp => {
+    val decodedMessage = new String(Base64.getDecoder.decode(resp.message.data))
+    println(decodedMessage)
 
+    val date = resp.message.publishTime getOrElse Instant.now()
+    println(date)
+
+  })
+
+  val batchAckSink = Flow[ReceivedMessage]
+    .map(message => {
       message.ackId
     })
-    .groupedWithin(6, 1.minute)
+    .groupedWithin(1000, 1.minute)
     .map(AcknowledgeRequest.apply)
-    .to(ackSink).run()
+    .to(ackSink)
+
+  val combinedSink = subscriptionSource.alsoTo(batchAckSink).to(decodeMessageSink)
+
+  combinedSink.run()
 
   try {
     io.StdIn.readLine()
