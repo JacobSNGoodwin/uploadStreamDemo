@@ -25,14 +25,14 @@ lazy val dependencies = new {
   val akkaV = "2.5.25"
   val alpakkaPubSubV = "1.1.1"
   val logbackV = "1.2.3"
-  val sprayJsonV = "10.1.9+3-8c13e4b3+20190823-1353"
+  val sprayJsonV = "1.3.4"
 
   val akkaActor = "com.typesafe.akka" %% "akka-actor" % akkaV
   val akkaStreams = "com.typesafe.akka" %% "akka-stream" % akkaV
   val alpakkaPubSub = "com.lightbend.akka" %% "akka-stream-alpakka-google-cloud-pub-sub" % alpakkaPubSubV
   val akkaSlf4j = "com.typesafe.akka" %% "akka-slf4j" % akkaV
   val logback = "ch.qos.logback" % "logback-classic" % logbackV
-  val sprayJson = "com.typesafe.akka" %% "akka-http-spray-json" % sprayJsonV
+  val sprayJson = "io.spray" %%  "spray-json" % sprayJsonV
 }
 
 // add common dependencies here
