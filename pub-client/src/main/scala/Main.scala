@@ -10,9 +10,9 @@ import akka.stream.scaladsl.{Flow, Keep, Sink, Source}
 
 import scala.annotation.tailrec
 import scala.collection.immutable.Seq
-import scala.concurrent.{Await, Future}
-import scala.concurrent.duration._
-import scala.util.{Failure, Success}
+
+import spray.json._
+import DefaultJsonProtocol._
 
 
 object Main extends App {
@@ -27,6 +27,15 @@ object Main extends App {
   val projectId = "uploadstream"
   val config = PubSubConfig(projectId, clientEmail, privateKey)
 
+  // configure spray JSON to send JSON message with deviceId and groupId
+  case class Device(deviceId: String, groupId: String)
+
+  object CustomJsonProtocol extends DefaultJsonProtocol {
+    implicit val deviceFormat = jsonFormat2(Device)
+  }
+
+  import CustomJsonProtocol._ // to provide implicits
+
   println(
     """
       |Welcome to this fine and dandy Google Cloud PubSub Publisher client. Please follow the prompts!
@@ -34,6 +43,7 @@ object Main extends App {
 
   topicLoop()
 
+  @tailrec
   def topicLoop(): Unit = {
     val topic = io.StdIn.readLine("Enter a Topic > ")
 
@@ -74,12 +84,13 @@ object Main extends App {
     // initial call of message loop to queue up messages
     getNewMessage()
 
+    @tailrec
     def getNewMessage(): Unit = {
       println(s"A message will be created and sent to '${topic}' based on the groupId and deviceId entered below.")
       val groupId = io.StdIn.readLine("Please provide the groupId  > ")
       val deviceId = io.StdIn.readLine("Please provide the deviceId > ")
 
-      val message = s"$groupId-$deviceId"
+      val message= Device(deviceId, groupId).toJson.compactPrint
 
       queue.offer(message).map {
 //        case QueueOfferResult.Enqueued    => println(s"enqueued message: $message, topic: $topic")
