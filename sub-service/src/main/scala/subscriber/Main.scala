@@ -1,14 +1,15 @@
+package subscriber
+
 import java.time.Instant
 import java.util.Base64
 
-import Main.CustomJsonProtocol.jsonFormat2
-import akka.{Done, NotUsed}
 import akka.actor.ActorSystem
 import akka.event.Logging
 import akka.stream.ActorMaterializer
-import akka.stream.alpakka.googlecloud.pubsub.{AcknowledgeRequest, PubSubConfig, PublishRequest, ReceivedMessage}
 import akka.stream.alpakka.googlecloud.pubsub.scaladsl.GooglePubSub
+import akka.stream.alpakka.googlecloud.pubsub.{AcknowledgeRequest, PubSubConfig, ReceivedMessage}
 import akka.stream.scaladsl.{Flow, Sink, Source}
+import akka.{Done, NotUsed}
 import spray.json.{DefaultJsonProtocol, JsonParser}
 
 import scala.concurrent.Future
@@ -62,6 +63,8 @@ object Main extends App {
   val combinedSink = subscriptionSource.alsoTo(batchAckSink).to(decodeMessageSink)
 
   combinedSink.run()
+
+  // create an actor system here - we can also send messages to create actors and add data.
 
   try {
     io.StdIn.readLine()
