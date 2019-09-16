@@ -7,9 +7,22 @@ The high-level view of the project is that a client application publishes a mess
 # Running the applications
 
 ## pub-client
+
+From the sbt console, run
+
+```$xslt
+pub/run
+```
+
 This client is used to publish messages to Google Cloud PubSub. It prompts the user for a topic to publish to, and then the user can publish messages to that topic. For now, the message consists of a simple _deviceId_ and _groupId_ representing a device in an IOT System (represented in the sub-service).
 
 ## sub-service
+From the sbt console, run
+
+```$xslt
+sub/run
+```
+
 The sub-service is an Akka Actor System representing a group of devices, similar to that in the [Akka Getting Started Guide](https://doc.akka.io/docs/akka/current/guide/index.html). 
 
 _details are a work in progress_
