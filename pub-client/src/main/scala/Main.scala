@@ -6,13 +6,12 @@ import akka.event.Logging
 import akka.stream.{ActorMaterializer, OverflowStrategy, QueueOfferResult}
 import akka.stream.alpakka.googlecloud.pubsub._
 import akka.stream.alpakka.googlecloud.pubsub.scaladsl.GooglePubSub
-import akka.stream.scaladsl.{Flow, Keep, Sink, Source}
+import akka.stream.scaladsl.{Flow, Source}
 
 import scala.annotation.tailrec
 import scala.collection.immutable.Seq
 
 import spray.json._
-import DefaultJsonProtocol._
 
 
 object Main extends App {
@@ -93,7 +92,7 @@ object Main extends App {
       val message= Device(deviceId, groupId).toJson.compactPrint
 
       queue.offer(message).map {
-//        case QueueOfferResult.Enqueued    => println(s"enqueued message: $message, topic: $topic")
+        case QueueOfferResult.Enqueued    => // println(s"enqueued message: $message, topic: $topic")
         case QueueOfferResult.Dropped     => println(s"dropped message: $message")
         case QueueOfferResult.Failure(ex) => println(s"Offer failed ${ex.getMessage}")
         case QueueOfferResult.QueueClosed => println("Source Queue closed")
