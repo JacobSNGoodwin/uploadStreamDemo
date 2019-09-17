@@ -1,8 +1,13 @@
 package subscriber
 
 import akka.actor.ActorSystem
+import akka.pattern.ask
 import akka.testkit.{ImplicitSender, TestKit, TestProbe}
+import akka.util.Timeout
 import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpecLike}
+
+import scala.concurrent.duration._
+
 
 
 class DeviceSpec extends TestKit(ActorSystem("DeviceSpec"))
@@ -16,14 +21,24 @@ class DeviceSpec extends TestKit(ActorSystem("DeviceSpec"))
   }
 
   "A device actor" should {
-    "should response with None if no data is available" in {
-      val deviceActor = system.actorOf(Device.props("0001", "0002"))
+    "respond with None if no data is available" in {
+      val deviceActor = system.actorOf(Device.props("0001", "0001"))
 
-      deviceActor ! Device.ReadRef(1)
+      deviceActor ! Device.ReadFileRef(1)
       val response = expectMsgType[Device.RespondRef]
       response.requestId should ===(1L)
       response.value should ===(None)
+    }
 
+    "successfully writes a file" in {
+      val deviceActor = system.actorOf(Device.props("0001", "0002"))
+      implicit val timeout: Timeout = Timeout(3.second)
+
+      // need to complete future
+      deviceActor ! Device.RecordData(9248743L)
+
+
+      expectMsg(Device.FileRecorded(9248743L))
     }
   }
 }
