@@ -87,7 +87,7 @@ class FileActor extends Actor with ActorLogging {
 
   override def receive: Receive = {
     case Write(fileName: String) =>
-      val file = Paths.get(fileName)
+      val file = Paths.get(".", "file-storage", fileName)
       val text: Source[String, NotUsed] = Source(1 to 10).map(_ => Random.alphanumeric.take(100 * 1024).mkString) // source of 1kB chunks
 
       sender() ! text.map(t => ByteString(t)).runWith(FileIO.toPath(file))
