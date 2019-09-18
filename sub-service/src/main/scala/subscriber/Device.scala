@@ -18,13 +18,15 @@ object Device {
   // factory method to create a new device
   def props(groupId: String, deviceId: String): Props = Props(new Device(groupId, deviceId))
 
-  final case class RecordData(requestId: Long)
-  final case class FileRecorded(requestId: Long)
-  final case class FileRecordError(reason: String)
+  // file recording messages
+  final case class RecordFile(requestId: Long)
+  final case class RecordFileResponse(requestId: Long)
+  final case class RecordFileError(reason: String)
 
-  final case class ReadError(reason: String)
-  final case class ReadFileRef(requestId: Long)
-  final case class RespondRef(requestId: Long, filePath: Option[String]) // holds path to data file
+  // file reading (respond with path) messages
+  final case class ReadFile(requestId: Long)
+  final case class ReadFileResponse(requestId: Long, filePath: Option[String]) // holds path to data file
+  final case class ReadFileError(reason: String)
 }
 
 class Device(groupId: String, deviceId: String) extends Actor with ActorLogging {
@@ -44,20 +46,23 @@ class Device(groupId: String, deviceId: String) extends Actor with ActorLogging 
 
   // state waiting for message to record a file (in this demo, saves a dummy file to disk)
   def awaitingRecordFile: Receive = {
-    case ReadFileRef(requestId) =>
+    case ReadFile(requestId) =>
       log.info("Actor does not yet have available file")
-      sender() ! RespondRef(requestId, None)
-    case RecordData(requestId) =>
+      sender() ! ReadFileResponse(requestId, None)
+    case RecordFile(requestId) =>
       log.info("Recording Data")
-      handleFileWrite(s"./file-storage/$groupId-$deviceId-$requestId.txt", requestId)
-      context.become(awaitUploadFile())
+      val path = s"./file-storage/$groupId-$deviceId-$requestId.txt"
+      handleFileWrite(path, requestId)
+      context.become(awaitUploadFile(path))
     case _ =>
       log.warning("Actor cannot handle message")
-      sender() ! ReadError("UnknownMessage")
+      sender() ! ReadFileError("UnknownMessageType")
   }
 
-  def awaitUploadFile(): Receive = {
-    case _ =>
+  def awaitUploadFile(filePath: String): Receive = {
+    case ReadFile(requestId) =>
+      log.info(s"Reading File Ref for requestId: ${requestId}")
+      sender() ! ReadFileResponse(requestId, Some(filePath))
   }
 
   def handleFileWrite(filePath: String, requestId: Long): Unit = {

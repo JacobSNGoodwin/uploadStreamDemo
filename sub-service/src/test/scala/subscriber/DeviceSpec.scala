@@ -34,10 +34,7 @@ class DeviceSpec extends TestKit(ActorSystem("DeviceSpec"))
       val deviceActor = system.actorOf(Device.props("0001", "0002"))
       implicit val timeout: Timeout = Timeout(3.second)
 
-      // need to complete future
       deviceActor ! Device.RecordData(9248743L)
-
-
       expectMsg(Device.FileRecorded(9248743L))
     }
   }
