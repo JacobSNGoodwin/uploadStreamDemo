@@ -18,21 +18,21 @@ import scala.concurrent.duration._
 object Main extends App {
   implicit val system = ActorSystem("PublishClient")
   implicit val mat = ActorMaterializer()
-
   implicit val log = Logging(system, "PublishLogger")
 
+  /*
+    Configure GC PubSub subscription
+   */
   val privateKey = system.settings.config.getString("gcConfig.key").replace("\\n", "\n")
-
   val clientEmail = "uploadstreamdemo@uploadstream.iam.gserviceaccount.com"
   val projectId = "uploadstream"
-
   val config = PubSubConfig(projectId, clientEmail, privateKey)
 
   // configure spray JSON to send JSON message with deviceId and groupId
-  case class Device(deviceId: String, groupId: String)
+  case class DeviceTarget(deviceId: String, groupId: String)
 
   object CustomJsonProtocol extends DefaultJsonProtocol {
-    implicit val deviceFormat = jsonFormat2(Device)
+    implicit val deviceFormat = jsonFormat2(DeviceTarget)
   }
 
   import CustomJsonProtocol._ // to provide implicits
@@ -43,15 +43,9 @@ object Main extends App {
   val ackSink: Sink[AcknowledgeRequest, Future[Done]] =
     GooglePubSub.acknowledge("subscription1", config)
 
-  val decodeMessageSink: Sink[ReceivedMessage, Future[Done]] = Sink.foreach[ReceivedMessage](resp => {
-    val requestedDevice = JsonParser(new String(Base64.getDecoder.decode(resp.message.data))).convertTo[Device]
-    println(requestedDevice)
-
-    val date = resp.message.publishTime getOrElse Instant.now()
-    println(date)
-
-  })
-
+  /*
+    Acknowledge message receipt to PubSub
+   */
   val batchAckSink = Flow[ReceivedMessage]
     .map(message => {
       message.ackId
@@ -59,6 +53,17 @@ object Main extends App {
     .groupedWithin(1000, 1.minute)
     .map(AcknowledgeRequest.apply)
     .to(ackSink)
+
+  /*
+    Parse PubSub JSON and connect messages to Actor System
+   */
+  val decodeMessageSink: Sink[ReceivedMessage, Future[Done]] = Sink.foreach[ReceivedMessage](resp => {
+    val requestedDevice = JsonParser(new String(Base64.getDecoder.decode(resp.message.data))).convertTo[DeviceTarget]
+    println(requestedDevice)
+
+    val date = resp.message.publishTime getOrElse Instant.now()
+    println(date)
+  })
 
   val combinedSink = subscriptionSource.alsoTo(batchAckSink).to(decodeMessageSink)
 
