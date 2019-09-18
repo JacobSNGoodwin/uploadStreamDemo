@@ -63,10 +63,10 @@ class Device(groupId: String, deviceId: String) extends Actor with ActorLogging 
     case ReadFile(requestId) =>
       log.info(s"Reading file path for requestId: ${requestId}")
       sender() ! ReadFileResponse(requestId, Some(filePath))
-      context.become(awaitUploadFile())
+//      context.become(awaitUploadFile())
   }
 
-  def awaitUploadFile(): Receive = ???
+//  def awaitUploadFile(): Receive = ???
 
   def handleFileWrite(filePath: String, requestId: Long): Unit = {
     // ask file actor to file write
