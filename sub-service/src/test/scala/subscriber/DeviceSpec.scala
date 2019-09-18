@@ -24,8 +24,8 @@ class DeviceSpec extends TestKit(ActorSystem("DeviceSpec"))
     "respond with None if no data is available" in {
       val deviceActor = system.actorOf(Device.props("0001", "0001"))
 
-      deviceActor ! Device.ReadFileRef(1)
-      val response = expectMsgType[Device.RespondRef]
+      deviceActor ! Device.ReadFile(1)
+      val response = expectMsgType[Device.ReadFileResponse]
       response.requestId should ===(1L)
       response.filePath should ===(None)
     }
@@ -34,8 +34,8 @@ class DeviceSpec extends TestKit(ActorSystem("DeviceSpec"))
       val deviceActor = system.actorOf(Device.props("0001", "0002"))
       implicit val timeout: Timeout = Timeout(3.second)
 
-      deviceActor ! Device.RecordData(9248743L)
-      expectMsg(Device.FileRecorded(9248743L))
+      deviceActor ! Device.RecordFile(9248743L)
+      expectMsg(Device.RecordFileResponse(9248743L))
     }
   }
 }

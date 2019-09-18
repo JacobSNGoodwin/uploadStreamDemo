@@ -53,17 +53,20 @@ class Device(groupId: String, deviceId: String) extends Actor with ActorLogging 
       log.info("Recording Data")
       val path = s"./file-storage/$groupId-$deviceId-$requestId.txt"
       handleFileWrite(path, requestId)
-      context.become(awaitUploadFile(path))
+      context.become(awaitReadFile(path))
     case _ =>
       log.warning("Actor cannot handle message")
       sender() ! ReadFileError("UnknownMessageType")
   }
 
-  def awaitUploadFile(filePath: String): Receive = {
+  def awaitReadFile(filePath: String): Receive = {
     case ReadFile(requestId) =>
-      log.info(s"Reading File Ref for requestId: ${requestId}")
+      log.info(s"Reading file path for requestId: ${requestId}")
       sender() ! ReadFileResponse(requestId, Some(filePath))
+      context.become(awaitUploadFile())
   }
+
+  def awaitUploadFile(): Receive = ???
 
   def handleFileWrite(filePath: String, requestId: Long): Unit = {
     // ask file actor to file write
@@ -73,8 +76,8 @@ class Device(groupId: String, deviceId: String) extends Actor with ActorLogging 
     val iOResultFuture = future.mapTo[Future[IOResult]].flatten
     val responseFuture = iOResultFuture.map(iOResult => {
       iOResult.status match {
-        case Success(Done) => FileRecorded(requestId)
-        case Failure(_) => FileRecordError("RecordingFileError")
+        case Success(Done) => RecordFileResponse(requestId)
+        case Failure(_) => RecordFileError("RecordingFileError")
       }
     })
 
