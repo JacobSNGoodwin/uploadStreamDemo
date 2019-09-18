@@ -3,7 +3,7 @@ package subscriber
 import java.time.Instant
 import java.util.Base64
 
-import akka.actor.ActorSystem
+import akka.actor.{ActorSystem, Props}
 import akka.event.Logging
 import akka.stream.ActorMaterializer
 import akka.stream.alpakka.googlecloud.pubsub.scaladsl.GooglePubSub
@@ -15,10 +15,12 @@ import spray.json.{DefaultJsonProtocol, JsonParser}
 import scala.concurrent.Future
 import scala.concurrent.duration._
 
+
+
 object Main extends App {
-  implicit val system = ActorSystem("PublishClient")
+  implicit val system = ActorSystem("SubClient")
   implicit val mat = ActorMaterializer()
-  implicit val log = Logging(system, "PublishLogger")
+  implicit val log = Logging(system, "SubLogger")
 
   /*
     Configure GC PubSub subscription
@@ -28,14 +30,6 @@ object Main extends App {
   val projectId = "uploadstream"
   val config = PubSubConfig(projectId, clientEmail, privateKey)
 
-  // configure spray JSON to send JSON message with deviceId and groupId
-  case class DeviceTarget(deviceId: String, groupId: String)
-
-  object CustomJsonProtocol extends DefaultJsonProtocol {
-    implicit val deviceFormat = jsonFormat2(DeviceTarget)
-  }
-
-  import CustomJsonProtocol._ // to provide implicits
 
   val subscriptionSource: Source[ReceivedMessage, NotUsed] =
     GooglePubSub.subscribe("subscription1", config)
@@ -55,17 +49,21 @@ object Main extends App {
     .to(ackSink)
 
   /*
-    Parse PubSub JSON and connect messages to Actor System
+    Create MessageReceiver as an Actor sink
    */
-  val decodeMessageSink: Sink[ReceivedMessage, Future[Done]] = Sink.foreach[ReceivedMessage](resp => {
-    val requestedDevice = JsonParser(new String(Base64.getDecoder.decode(resp.message.data))).convertTo[DeviceTarget]
-    println(requestedDevice)
 
-    val date = resp.message.publishTime getOrElse Instant.now()
-    println(date)
-  })
+  val messageReceiver = system.actorOf(MessageReceiver.props(ackWith = MessageReceiver.Ack))
 
-  val combinedSink = subscriptionSource.alsoTo(batchAckSink).to(decodeMessageSink)
+  val messageReceiverSink = Sink.actorRefWithAck(
+    messageReceiver,
+    onInitMessage = MessageReceiver.StreamInitialized,
+    ackMessage = MessageReceiver.Ack,
+    onCompleteMessage = MessageReceiver.StreamCompleted,
+    onFailureMessage = (ex: Throwable) => MessageReceiver.StreamFailure(ex)
+  )
+
+  // run subscription message through ackSink and to MessageReceiver Actor
+  val combinedSink = subscriptionSource.alsoTo(batchAckSink).to(messageReceiverSink)
 
   combinedSink.run()
 
