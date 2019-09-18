@@ -24,7 +24,7 @@ object Device {
 
   final case class ReadError(reason: String)
   final case class ReadFileRef(requestId: Long)
-  final case class RespondRef(requestId: Long, value: Option[String]) // holds path to data file
+  final case class RespondRef(requestId: Long, filePath: Option[String]) // holds path to data file
 }
 
 class Device(groupId: String, deviceId: String) extends Actor with ActorLogging {
@@ -49,15 +49,20 @@ class Device(groupId: String, deviceId: String) extends Actor with ActorLogging 
       sender() ! RespondRef(requestId, None)
     case RecordData(requestId) =>
       log.info("Recording Data")
-      handleFileWrite(s"$groupId-$deviceId-$requestId.txt", requestId)
+      handleFileWrite(s"./file-storage/$groupId-$deviceId-$requestId.txt", requestId)
+      context.become(awaitUploadFile())
     case _ =>
       log.warning("Actor cannot handle message")
       sender() ! ReadError("UnknownMessage")
   }
 
-  def handleFileWrite(fileName: String, requestId: Long): Unit = {
+  def awaitUploadFile(): Receive = {
+    case _ =>
+  }
+
+  def handleFileWrite(filePath: String, requestId: Long): Unit = {
     // ask file actor to file write
-    val future = fileActor ? Write(fileName)
+    val future = fileActor ? Write(filePath)
 
     // response itself returns a future, which we flatten
     val iOResultFuture = future.mapTo[Future[IOResult]].flatten
@@ -86,10 +91,9 @@ class FileActor extends Actor with ActorLogging {
   override def postStop(): Unit = log.info("File Actor stopped")
 
   override def receive: Receive = {
-    case Write(fileName: String) =>
-      val file = Paths.get(".", "file-storage", fileName)
+    case Write(filePath: String) =>
+      val file = Paths.get(filePath)
       val text: Source[String, NotUsed] = Source(1 to 10).map(_ => Random.alphanumeric.take(100 * 1024).mkString) // source of 1kB chunks
-
       sender() ! text.map(t => ByteString(t)).runWith(FileIO.toPath(file))
   }
 }

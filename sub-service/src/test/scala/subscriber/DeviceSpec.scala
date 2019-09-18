@@ -27,7 +27,7 @@ class DeviceSpec extends TestKit(ActorSystem("DeviceSpec"))
       deviceActor ! Device.ReadFileRef(1)
       val response = expectMsgType[Device.RespondRef]
       response.requestId should ===(1L)
-      response.value should ===(None)
+      response.filePath should ===(None)
     }
 
     "successfully writes a file" in {
