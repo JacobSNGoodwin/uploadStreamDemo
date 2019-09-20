@@ -14,10 +14,17 @@ object CustomJsonProtocol extends DefaultJsonProtocol {
 
 object MessageReceiver {
   def props(ackWith: Any): Props = Props(new MessageReceiver(ackWith: Any))
+
+  // messages for stream handling
   case object Ack
   case object StreamInitialized
   case object StreamCompleted
   final case class StreamFailure(ex: Throwable)
+
+  // Messages for Device management
+  final case class RequestTrackDevice(groupId: String, deviceId: String)
+  case object DeviceRegistered
+
 }
 class MessageReceiver(ackWith: Any) extends Actor with ActorLogging {
   import MessageReceiver._
