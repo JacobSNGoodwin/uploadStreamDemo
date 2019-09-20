@@ -1,7 +1,6 @@
 package subscriber
 
 import akka.actor.ActorSystem
-import akka.pattern.ask
 import akka.testkit.{ImplicitSender, TestKit, TestProbe}
 import akka.util.Timeout
 import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpecLike}
@@ -45,22 +44,26 @@ class DeviceSpec extends TestKit(ActorSystem("DeviceSpec"))
       val probe = TestProbe()
       val deviceActor = system.actorOf(Device.props("0001", "0001"))
 
-      deviceActor.tell(Device.ReadFile(1), probe.ref)
-      val response = probe.expectMsgType[Device.ReadFileResponse]
+      deviceActor.tell(Device.ReadFiles(1), probe.ref)
+      val response = probe.expectMsgType[Device.ReadFilesResponse]
       response.requestId should ===(1L)
-      response.filePath should ===(None)
+      response.filePaths should ===(None)
     }
 
     "respond to successful file write" in {
+      val groupId = "0001"
+      val deviceId = "0002"
       val probe = TestProbe()
-      val deviceActor = system.actorOf(Device.props("0001", "0002"))
+      val deviceActor = system.actorOf(Device.props(groupId, deviceId))
       implicit val timeout: Timeout = Timeout(3.second)
 
       deviceActor.tell(Device.RecordFile(2L), probe.ref)
-      probe.expectMsg(Device.RecordFileResponse(2L))
+      val response = probe.expectMsgType[Device.RecordFileResponse]
+      response.requestId should===(2L)
+      response.filePath should===(s"./file-storage/$groupId-$deviceId-2.txt")
     }
 
-//    "respond with file path if there is a recorded file" in {
+//    "respond with seq of file paths if there is at least one recorded file" in {
 //      val groupId = "0001"
 //      val deviceId = "0002"
 //      val probe = TestProbe()
@@ -68,11 +71,11 @@ class DeviceSpec extends TestKit(ActorSystem("DeviceSpec"))
 //
 //      implicit val timeout: Timeout = Timeout(3.second)
 //
-//      deviceActor.tell(Device.RecordFile(3L), probe.ref)
-//      deviceActor.tell(Device.ReadFile(4L), probe.ref)
-//      val response = probe.expectMsgType[Device.ReadFileResponse]
-//      response.requestId should ===(4L)
-//      response.filePath should===(Some(s"./file-storage/$groupId-$deviceId-3.txt"))
+//      deviceActor.tell(Device.RecordFile(1L), probe.ref)
+//      deviceActor.tell(Device.ReadFiles(1L), probe.ref)
+//      val response = probe.expectMsgType[Device.ReadFilesResponse]
+//      response.requestId should ===(1L)
+//      response.filePaths should===(Some(Seq(s"./file-storage/$groupId-$deviceId-1.txt"), s"./file-storage/$groupId-$deviceId-2.txt"))
 //    }
 
   }

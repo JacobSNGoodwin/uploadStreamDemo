@@ -1,17 +1,11 @@
 package subscriber
 
-import java.nio.file.Paths
-
-import akka.{Done, NotUsed}
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import akka.pattern.{ask, pipe}
-import akka.stream.{ActorMaterializer, IOResult}
-import akka.stream.scaladsl.{FileIO, Source}
-import akka.util.{ByteString, Timeout}
-
-import scala.concurrent.{ExecutionContext, Future}
+import akka.util.Timeout
+import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
-import scala.util.{Failure, Random, Success, Try}
+
 
 
 object Device {
@@ -20,16 +14,17 @@ object Device {
 
   // file recording messages
   final case class RecordFile(requestId: Long)
-  final case class RecordFileResponse(requestId: Long)
+  final case class RecordFileResponse(requestId: Long, filePath: String)
   final case class RecordFileError(reason: String)
 
   // file reading (respond with path) messages
-  final case class ReadFile(requestId: Long)
-  final case class ReadFileResponse(requestId: Long, filePath: Option[String]) // holds path to data file
-  final case class ReadFileError(reason: String)
+  final case class ReadFiles(requestId: Long)
+  final case class ReadFilesResponse(requestId: Long, filePaths: Option[Seq[String]]) // holds path to data file
+  final case class ReadFilesError(reason: String)
 }
 
 class Device(groupId: String, deviceId: String) extends Actor with ActorLogging {
+
   import Device._
   import FileActor._
 
@@ -38,14 +33,13 @@ class Device(groupId: String, deviceId: String) extends Actor with ActorLogging 
   implicit val executionContext: ExecutionContext = context.dispatcher
 
   override def preStart(): Unit = log.info("Device Actor {}-{} started", groupId, deviceId)
+
   override def postStop(): Unit = log.info("Device Actor {}-{} stopped", groupId, deviceId)
 
   // receiver initially has no recordings
   override def receive: Receive = deviceReceive(Seq[String]())
 
-  protected val fileActor: ActorRef = context.actorOf(Props[FileActor])
-
-  // state waiting for message to record a file (in this demo, saves a dummy file to disk)
+  // deviceReceive holds a list of current recordings
   def deviceReceive(recordings: Seq[String]): Receive = {
     case MessageReceiver.RequestTrackDevice(`groupId`, `deviceId`) =>
       log.info("Confirming device registered - groupId: {}, deviceId: {}")
@@ -57,54 +51,25 @@ class Device(groupId: String, deviceId: String) extends Actor with ActorLogging 
         deviceId,
         this.groupId,
         this.deviceId)
-    case ReadFile(requestId) =>
-      log.info("Actor does not yet have available file")
-      sender() ! ReadFileResponse(requestId, None)
     case RecordFile(requestId) =>
       log.info("Recording Data")
       val path = s"./file-storage/$groupId-$deviceId-$requestId.txt"
-      handleFileWrite(path, requestId)
-      context.become(deviceReceive(recordings :+ path))
+      val fileActor: ActorRef = context.actorOf(Props[FileActor])
+      (fileActor ? Write(requestId, path)).pipeTo(sender())
+    case ReadFiles(requestId) =>
+      if (recordings.length < 1) {
+        log.info("Actor does not yet have available file")
+        sender() ! ReadFilesResponse(requestId, None)
+      } else {
+        log.info("Providing list of recordings")
+        sender() ! ReadFilesResponse(requestId, Some(recordings))
+      }
+    case RecordFileResponse(requestId, filePath) =>
+      log.info("File recorded for requestId: {} and filePath: {}", requestId, filePath)
     case _ =>
       log.warning("Actor cannot handle message")
-      sender() ! ReadFileError("UnknownMessageType")
-  }
-
-
-  def handleFileWrite(filePath: String, requestId: Long): Unit = {
-    // ask file actor to file write
-    val future = fileActor ? Write(filePath)
-
-    // response itself returns a future, which we flatten
-    val iOResultFuture = future.mapTo[Future[IOResult]].flatten
-    val responseFuture = iOResultFuture.map(iOResult => {
-      iOResult.status match {
-        case Success(Done) => RecordFileResponse(requestId)
-        case Failure(_) => RecordFileError("RecordingFileError")
-      }
-    })
-
-    responseFuture.pipeTo(sender())
+      sender() ! ReadFilesError("UnknownMessageType")
   }
 }
 
-// Actor for handling async file reading and writing
-object FileActor {
-  case class Write(filePath: String)
-}
-class FileActor extends Actor with ActorLogging {
-  import FileActor._
-  implicit val executionContext: ExecutionContext = context.dispatcher
-  // materializer for akka streams API (file IO)
-  implicit val materializer: ActorMaterializer = ActorMaterializer()
 
-  override def preStart(): Unit = log.info("File Actor Started")
-  override def postStop(): Unit = log.info("File Actor stopped")
-
-  override def receive: Receive = {
-    case Write(filePath: String) =>
-      val file = Paths.get(filePath)
-      val text: Source[String, NotUsed] = Source(1 to 10).map(_ => Random.alphanumeric.take(100 * 1024).mkString) // source of 1kB chunks
-      sender() ! text.map(t => ByteString(t)).runWith(FileIO.toPath(file))
-  }
-}
