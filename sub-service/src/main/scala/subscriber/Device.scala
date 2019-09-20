@@ -40,12 +40,23 @@ class Device(groupId: String, deviceId: String) extends Actor with ActorLogging 
   override def preStart(): Unit = log.info("Device Actor {}-{} started", groupId, deviceId)
   override def postStop(): Unit = log.info("Device Actor {}-{} stopped", groupId, deviceId)
 
-  override def receive: Receive = awaitingRecordFile
+  // receiver initially has no recordings
+  override def receive: Receive = deviceReceive(Seq[String]())
 
   protected val fileActor: ActorRef = context.actorOf(Props[FileActor])
 
   // state waiting for message to record a file (in this demo, saves a dummy file to disk)
-  def awaitingRecordFile: Receive = {
+  def deviceReceive(recordings: Seq[String]): Receive = {
+    case MessageReceiver.RequestTrackDevice(`groupId`, `deviceId`) =>
+      log.info("Confirming device registered - groupId: {}, deviceId: {}")
+      sender() ! MessageReceiver.DeviceRegistered
+    case MessageReceiver.RequestTrackDevice(groupId, deviceId) =>
+      log.warning(
+        "Ignoring TrackDevice request for {}-{}.This actor is responsible for {}-{}.",
+        groupId,
+        deviceId,
+        this.groupId,
+        this.deviceId)
     case ReadFile(requestId) =>
       log.info("Actor does not yet have available file")
       sender() ! ReadFileResponse(requestId, None)
@@ -53,20 +64,12 @@ class Device(groupId: String, deviceId: String) extends Actor with ActorLogging 
       log.info("Recording Data")
       val path = s"./file-storage/$groupId-$deviceId-$requestId.txt"
       handleFileWrite(path, requestId)
-      context.become(awaitReadFile(path))
+      context.become(deviceReceive(recordings :+ path))
     case _ =>
       log.warning("Actor cannot handle message")
       sender() ! ReadFileError("UnknownMessageType")
   }
 
-  def awaitReadFile(filePath: String): Receive = {
-    case ReadFile(requestId) =>
-      log.info(s"Reading file path for requestId: ${requestId}")
-      sender() ! ReadFileResponse(requestId, Some(filePath))
-//      context.become(awaitUploadFile())
-  }
-
-//  def awaitUploadFile(): Receive = ???
 
   def handleFileWrite(filePath: String, requestId: Long): Unit = {
     // ask file actor to file write
