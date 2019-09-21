@@ -4,6 +4,7 @@ import akka.actor.ActorSystem
 import akka.testkit.{ImplicitSender, TestKit, TestProbe}
 import akka.util.Timeout
 import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpecLike}
+import subscriber.Device.{ReadFiles, RecordFileResponse}
 
 import scala.concurrent.duration._
 
@@ -58,25 +59,33 @@ class DeviceSpec extends TestKit(ActorSystem("DeviceSpec"))
       implicit val timeout: Timeout = Timeout(3.second)
 
       deviceActor.tell(Device.RecordFile(2L), probe.ref)
-      val response = probe.expectMsgType[Device.RecordFileResponse]
+      val response = probe.expectMsgType[RecordFileResponse]
       response.requestId should===(2L)
       response.filePath should===(s"./file-storage/$groupId-$deviceId-2.txt")
     }
 
-//    "respond with seq of file paths if there is at least one recorded file" in {
-//      val groupId = "0001"
-//      val deviceId = "0002"
-//      val probe = TestProbe()
-//      val deviceActor = system.actorOf(Device.props(groupId, deviceId))
-//
-//      implicit val timeout: Timeout = Timeout(3.second)
-//
-//      deviceActor.tell(Device.RecordFile(1L), probe.ref)
-//      deviceActor.tell(Device.ReadFiles(1L), probe.ref)
-//      val response = probe.expectMsgType[Device.ReadFilesResponse]
-//      response.requestId should ===(1L)
-//      response.filePaths should===(Some(Seq(s"./file-storage/$groupId-$deviceId-1.txt"), s"./file-storage/$groupId-$deviceId-2.txt"))
-//    }
+    "respond with seq of file paths if there is at least one recorded file" in {
+      val groupId = "0002"
+      val deviceId = "0003"
+      val probe = TestProbe()
+
+      val deviceActor = system.actorOf(Device.props(groupId, deviceId))
+
+      implicit val timeout: Timeout = Timeout(3.second)
+
+      deviceActor.tell(Device.RecordFile(1L), probe.ref)
+      probe.expectMsgType[Device.RecordFileResponse]
+      deviceActor.tell(Device.RecordFile(2L), probe.ref)
+      probe.expectMsgType[Device.RecordFileResponse] // to make sure we have responses before reading files
+
+      deviceActor.tell(Device.ReadFiles(1L), probe.ref)
+      val response = probe.expectMsgType[Device.ReadFilesResponse]
+      response.requestId should ===(1L)
+      response.filePaths should ===(Some(Seq(
+        s"./file-storage/$groupId-$deviceId-1.txt",
+        s"./file-storage/$groupId-$deviceId-2.txt",
+      )))
+    }
 
   }
 }

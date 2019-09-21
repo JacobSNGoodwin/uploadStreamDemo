@@ -55,7 +55,7 @@ class Device(groupId: String, deviceId: String) extends Actor with ActorLogging 
       log.info("Recording Data")
       val path = s"./file-storage/$groupId-$deviceId-$requestId.txt"
       val fileActor: ActorRef = context.actorOf(Props[FileActor])
-      (fileActor ? Write(requestId, path)).pipeTo(sender())
+      fileActor ! Write(requestId, path, sender())
     case ReadFiles(requestId) =>
       if (recordings.length < 1) {
         log.info("Actor does not yet have available file")
@@ -64,8 +64,17 @@ class Device(groupId: String, deviceId: String) extends Actor with ActorLogging 
         log.info("Providing list of recordings")
         sender() ! ReadFilesResponse(requestId, Some(recordings))
       }
-    case RecordFileResponse(requestId, filePath) =>
-      log.info("File recorded for requestId: {} and filePath: {}", requestId, filePath)
+    case FileActor.FileRecorded(requestId, filePath, originalSender) =>
+      // need to handle the FileActor's future result here to change the context, but also need response
+      // to the original sender. Maybe a cleaner way to do this?
+      log.info("A file was recorded: {}-{}", requestId, filePath)
+      originalSender ! RecordFileResponse(requestId, filePath)
+      context.become(deviceReceive(recordings :+ filePath))
+    case FileActor.FileRecordedFailed(originalSender) =>
+      // need to handle the FileActor's future result here to change the context, but also need response
+      // to the original sender. Maybe a cleaner way to do this?
+      log.warning("Failed to write file")
+      originalSender ! RecordFileError("FileWriteFailure")
     case _ =>
       log.warning("Actor cannot handle message")
       sender() ! ReadFilesError("UnknownMessageType")

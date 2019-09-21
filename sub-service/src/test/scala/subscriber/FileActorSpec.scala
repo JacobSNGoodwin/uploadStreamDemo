@@ -23,8 +23,8 @@ class FileActorSpec extends TestKit(ActorSystem("FileActorSpec"))
       val fileActor = system.actorOf(Props[FileActor])
 
       implicit val timeout: Timeout = Timeout(3.second)
-      fileActor.tell(Write(54321L, "./file-storage/test-file.txt"), probe.ref)
-      probe.expectMsg(Device.RecordFileResponse(54321L, "./file-storage/test-file.txt"))
+      fileActor.tell(Write(54321L, "./file-storage/test-file.txt", fileActor), probe.ref)
+      probe.expectMsg(FileRecorded(54321L, "./file-storage/test-file.txt", fileActor))
     }
   }
 
