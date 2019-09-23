@@ -49,25 +49,27 @@ object Main extends App {
     .to(ackSink)
 
   /*
-    Create MessageReceiver as an Actor sink
+    Create DeviceManager as an Actor sink
    */
 
-  val messageReceiver = system.actorOf(MessageReceiver.props(ackWith = MessageReceiver.Ack))
+  val messageReceiver = system.actorOf(DeviceManager.props(ackWith = DeviceManager.Ack))
 
   val messageReceiverSink = Sink.actorRefWithAck(
     messageReceiver,
-    onInitMessage = MessageReceiver.StreamInitialized,
-    ackMessage = MessageReceiver.Ack,
-    onCompleteMessage = MessageReceiver.StreamCompleted,
-    onFailureMessage = (ex: Throwable) => MessageReceiver.StreamFailure(ex)
+    onInitMessage = DeviceManager.StreamInitialized,
+    ackMessage = DeviceManager.Ack,
+    onCompleteMessage = DeviceManager.StreamCompleted,
+    onFailureMessage = (ex: Throwable) => DeviceManager.StreamFailure(ex)
   )
 
-  // run subscription message through ackSink and to MessageReceiver Actor
+  // run subscription message through ackSink and to DeviceManager Actor
   val combinedSink = subscriptionSource.alsoTo(batchAckSink).to(messageReceiverSink)
 
   combinedSink.run()
 
-  // create an actor system here - we can also send messages to create actors and add data.
+  // Here we register devices in our IOT device system similar to a system in the Akka getting started guide
+  // In reality, an application might have a client to register new device groups and devices, or even register these
+  // based on messages from another service. We keep this outside of the app for this demo.
 
   try {
     io.StdIn.readLine()

@@ -12,8 +12,8 @@ object CustomJsonProtocol extends DefaultJsonProtocol {
   implicit val deviceFormat = jsonFormat2(DeviceTarget)
 }
 
-object MessageReceiver {
-  def props(ackWith: Any): Props = Props(new MessageReceiver(ackWith: Any))
+object DeviceManager {
+  def props(ackWith: Any): Props = Props(new DeviceManager(ackWith: Any))
 
   // messages for stream handling
   case object Ack
@@ -26,8 +26,8 @@ object MessageReceiver {
   case object DeviceRegistered
 
 }
-class MessageReceiver(ackWith: Any) extends Actor with ActorLogging {
-  import MessageReceiver._
+class DeviceManager(ackWith: Any) extends Actor with ActorLogging {
+  import DeviceManager._
   import CustomJsonProtocol._ // to provide implicits
   override def receive: Receive = {
     case StreamInitialized =>
