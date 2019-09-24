@@ -5,8 +5,12 @@ import akka.actor.{Actor, ActorLogging, ActorRef, Props, Terminated}
 
 object DeviceGroup {
   def props(groupId: String): Props = Props(new DeviceGroup(groupId))
+
+  final case class RequestDeviceList(requestId: Long)
+  final case class ReplyDeviceList(requestId: Long, ids: Set[String])
 }
 class DeviceGroup(groupId: String) extends Actor with ActorLogging {
+  import DeviceGroup._
   override def receive: Receive = groupReceiver(Map(), Map())
 
   def groupReceiver(deviceIdToActor: Map[String, ActorRef], actorToDeviceId: Map[ActorRef, String]): Receive = {
@@ -32,6 +36,8 @@ class DeviceGroup(groupId: String) extends Actor with ActorLogging {
     case DeviceManager.RequestTrackDevice(groupId, deviceId) =>
       // should not receive this message unless parent's list of groups goes wonky
       log.warning("Ignoring TrackDevice request for {}. This actor is responsible for {}.", groupId, this.groupId)
+    case RequestDeviceList(requestId) =>
+      sender() ! ReplyDeviceList(requestId, deviceIdToActor.keySet)
     case Terminated(deviceActor) =>
       val deviceId = actorToDeviceId(deviceActor)
       log.info("Device actor for {} has been terminated", deviceId)
