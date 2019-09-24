@@ -21,6 +21,11 @@ object Device {
   final case class ReadFiles(requestId: Long)
   final case class ReadFilesResponse(requestId: Long, filePaths: Option[Seq[String]]) // holds path to data file
   final case class ReadFilesError(reason: String)
+
+  // file uploading/streaming to GC
+  final case class UploadFiles(requestId: Long)
+  final case class UploadFilesResponse(requestId: Long)
+  final case class UploadFilesError(reason: String)
 }
 
 class Device(groupId: String, deviceId: String) extends Actor with ActorLogging {
@@ -41,10 +46,10 @@ class Device(groupId: String, deviceId: String) extends Actor with ActorLogging 
 
   // deviceReceive holds a list of current recordings
   def deviceReceive(recordings: Seq[String]): Receive = {
-    case MessageReceiver.RequestTrackDevice(`groupId`, `deviceId`) =>
+    case DeviceManager.RequestTrackDevice(`groupId`, `deviceId`) =>
       log.info("Confirming device registered - groupId: {}, deviceId: {}")
-      sender() ! MessageReceiver.DeviceRegistered
-    case MessageReceiver.RequestTrackDevice(groupId, deviceId) =>
+      sender() ! DeviceManager.DeviceRegistered
+    case DeviceManager.RequestTrackDevice(groupId, deviceId) =>
       log.warning(
         "Ignoring TrackDevice request for {}-{}.This actor is responsible for {}-{}.",
         groupId,

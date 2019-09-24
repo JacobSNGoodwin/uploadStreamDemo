@@ -1,0 +1,5 @@
+package subscriber
+
+class DeviceGroupSpec {
+
+}

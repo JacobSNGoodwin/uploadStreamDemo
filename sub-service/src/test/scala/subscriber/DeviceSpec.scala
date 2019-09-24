@@ -25,8 +25,8 @@ class DeviceSpec extends TestKit(ActorSystem("DeviceSpec"))
       val probe = TestProbe()
       val deviceActor = system.actorOf(Device.props("group", "device"))
 
-      deviceActor.tell(MessageReceiver.RequestTrackDevice("group", "device"), probe.ref)
-      probe.expectMsg(MessageReceiver.DeviceRegistered)
+      deviceActor.tell(DeviceManager.RequestTrackDevice("group", "device"), probe.ref)
+      probe.expectMsg(DeviceManager.DeviceRegistered)
       probe.lastSender should ===(deviceActor)
     }
 
@@ -34,10 +34,10 @@ class DeviceSpec extends TestKit(ActorSystem("DeviceSpec"))
       val probe = TestProbe()
       val deviceActor = system.actorOf(Device.props("group", "device"))
 
-      deviceActor.tell(MessageReceiver.RequestTrackDevice("wrongGroup", "device"), probe.ref)
+      deviceActor.tell(DeviceManager.RequestTrackDevice("wrongGroup", "device"), probe.ref)
       probe.expectNoMessage(500.milliseconds)
 
-      deviceActor.tell(MessageReceiver.RequestTrackDevice("group", "Wrongdevice"), probe.ref)
+      deviceActor.tell(DeviceManager.RequestTrackDevice("group", "Wrongdevice"), probe.ref)
       probe.expectNoMessage(500.milliseconds)
     }
 

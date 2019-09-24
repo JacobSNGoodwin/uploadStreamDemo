@@ -1,10 +1,46 @@
 package subscriber
 
-import akka.actor.{Actor, ActorLogging, Props}
+import akka.actor.{Actor, ActorLogging, ActorRef, Props, Terminated}
+
 
 object DeviceGroup {
   def props(groupId: String): Props = Props(new DeviceGroup(groupId))
 }
 class DeviceGroup(groupId: String) extends Actor with ActorLogging {
-  override def receive: Receive = ???
+  override def receive: Receive = groupReceiver(Map(), Map())
+
+  def groupReceiver(deviceIdToActor: Map[String, ActorRef], actorToDeviceId: Map[ActorRef, String]): Receive = {
+    // Request is this this groupId
+    case trackMsg @ DeviceManager.RequestTrackDevice(`groupId`, _) =>
+      deviceIdToActor.get(trackMsg.deviceId) match {
+        case Some(deviceActor) =>
+          log.info(s"forwarding RequestTrackDevice to ${deviceActor}")
+          deviceActor.forward(trackMsg)
+        case None =>
+          // create device
+          log.info("Creating a device actor with deviceId: {} for this groupId: {}", trackMsg.deviceId, groupId)
+          val deviceActor = context.actorOf(Device.props(groupId, trackMsg.deviceId), s"device-${trackMsg.deviceId}")
+          context.watch(deviceActor)
+          deviceActor.forward(trackMsg)
+
+          // update mappings and receive behavior
+          val newDeviceIdToActor = deviceIdToActor + (trackMsg.deviceId -> deviceActor)
+          val newActorToDeviceId = actorToDeviceId + (deviceActor -> trackMsg.deviceId)
+
+          context.become(groupReceiver(newDeviceIdToActor, newActorToDeviceId))
+      }
+    case DeviceManager.RequestTrackDevice(groupId, deviceId) =>
+      // should not receive this message unless parent's list of groups goes wonky
+      log.warning("Ignoring TrackDevice request for {}. This actor is responsible for {}.", groupId, this.groupId)
+    case Terminated(deviceActor) =>
+      val deviceId = actorToDeviceId(deviceActor)
+      log.info("Device actor for {} has been terminated", deviceId)
+
+      // update mappings and receive behavior
+      val newDeviceIdToActor = deviceIdToActor - deviceId
+      val newActorToDeviceId = actorToDeviceId - deviceActor
+
+      context.become(groupReceiver(newDeviceIdToActor, newActorToDeviceId))
+
+  }
 }
