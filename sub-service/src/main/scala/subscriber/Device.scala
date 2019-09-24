@@ -47,7 +47,7 @@ class Device(groupId: String, deviceId: String) extends Actor with ActorLogging 
   // deviceReceive holds a list of current recordings
   def deviceReceive(recordings: Seq[String]): Receive = {
     case DeviceManager.RequestTrackDevice(`groupId`, `deviceId`) =>
-      log.info("Confirming device registered - groupId: {}, deviceId: {}")
+      log.info("Confirming device registered - groupId: {}, deviceId: {}", groupId, deviceId)
       sender() ! DeviceManager.DeviceRegistered
     case DeviceManager.RequestTrackDevice(groupId, deviceId) =>
       log.warning(
