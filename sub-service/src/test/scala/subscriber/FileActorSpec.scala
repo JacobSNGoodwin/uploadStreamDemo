@@ -28,19 +28,19 @@ class FileActorSpec extends TestKit(ActorSystem("FileActorSpec"))
     }
 
     "return a response on file upload" in {
+      // more of an integration test
       val probe = TestProbe()
       val fileActor = system.actorOf(Props[FileActor])
       val filePath = "./file-storage/test-file.txt"
 
-      within(3.seconds){
-        fileActor.tell(Write(54321L, filePath, fileActor), probe.ref)
-        probe.expectMsg(FileRecorded(54321L, filePath, fileActor))
-      }
 
-      within(15.second){
-        fileActor.tell(FileUpload(12345L, filePath), probe.ref)
-        probe.expectMsgType[FileUploadResponse]
-      }
+      fileActor.tell(Write(54321L, filePath, fileActor), probe.ref)
+      probe.expectMsg(FileRecorded(54321L, filePath, fileActor))
+
+
+      fileActor.tell(FileUpload(12345L, filePath), probe.ref)
+      probe.expectMsgType[FileUploadResponse](15.seconds)
+
     }
   }
 
