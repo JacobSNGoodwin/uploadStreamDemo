@@ -64,7 +64,7 @@ class DeviceSpec extends TestKit(ActorSystem("DeviceSpec"))
       response.filePath should===(s"./file-storage/$groupId-$deviceId-2.txt")
     }
 
-    "respond with seq of file paths if there is at least one recorded file" in {
+    "respond with set of file paths if there is at least one recorded file" in {
       val groupId = "0002"
       val deviceId = "0003"
       val probe = TestProbe()
@@ -81,7 +81,7 @@ class DeviceSpec extends TestKit(ActorSystem("DeviceSpec"))
       deviceActor.tell(Device.ReadFiles(1L), probe.ref)
       val response = probe.expectMsgType[Device.ReadFilesResponse]
       response.requestId should ===(1L)
-      response.filePaths should ===(Some(Seq(
+      response.filePaths should ===(Some(Set(
         s"./file-storage/$groupId-$deviceId-1.txt",
         s"./file-storage/$groupId-$deviceId-2.txt",
       )))
