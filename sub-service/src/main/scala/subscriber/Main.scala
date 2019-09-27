@@ -72,6 +72,10 @@ object Main extends App {
   // based on messages from another service. We keep this outside of the app for this demo.
 
   try {
+    val supervisor = system.actorOf(SupervisingActor.props())
+    messageReceiver.tell(DeviceManager.RequestTrackDevice("0001", "0001"), supervisor)
+    messageReceiver.tell(DeviceManager.RequestTrackDevice("0001", "0002"), supervisor)
+    messageReceiver.tell(DeviceManager.RequestTrackDevice("0002", "0003"), supervisor)
     io.StdIn.readLine()
   } finally {
     system.terminate()
