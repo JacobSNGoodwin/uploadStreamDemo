@@ -52,14 +52,14 @@ object Main extends App {
     Create DeviceManager as an Actor sink
    */
 
-  val messageReceiver = system.actorOf(MessageReceiver.props(ackWith = MessageReceiver.Ack))
+  val messageReceiver = system.actorOf(DeviceManager.props(ackWith = DeviceManager.Ack))
 
   val messageReceiverSink = Sink.actorRefWithAck(
     messageReceiver,
-    onInitMessage = MessageReceiver.StreamInitialized,
-    ackMessage = MessageReceiver.Ack,
-    onCompleteMessage = MessageReceiver.StreamCompleted,
-    onFailureMessage = (ex: Throwable) => MessageReceiver.StreamFailure(ex)
+    onInitMessage = DeviceManager.StreamInitialized,
+    ackMessage = DeviceManager.Ack,
+    onCompleteMessage = DeviceManager.StreamCompleted,
+    onFailureMessage = (ex: Throwable) => DeviceManager.StreamFailure(ex)
   )
 
   // run subscription message through ackSink and to DeviceManager Actor
