@@ -41,6 +41,9 @@ class Device(groupId: String, deviceId: String) extends Actor with ActorLogging 
 
   override def postStop(): Unit = log.info("Device Actor {}-{} stopped", groupId, deviceId)
 
+  // each Device will use a single file actor for this demo
+  val fileActor: ActorRef = context.actorOf(Props[FileActor])
+
   // receiver initially has no recordings
   override def receive: Receive = deviceReceive(Seq[String]())
 
@@ -59,7 +62,6 @@ class Device(groupId: String, deviceId: String) extends Actor with ActorLogging 
     case RecordFile(requestId) =>
       log.info("Recording Data")
       val path = s"./file-storage/$groupId-$deviceId-$requestId.txt"
-      val fileActor: ActorRef = context.actorOf(Props[FileActor])
       fileActor ! Write(requestId, path, sender())
     case ReadFiles(requestId) =>
       if (recordings.length < 1) {
