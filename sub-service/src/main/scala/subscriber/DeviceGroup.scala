@@ -13,6 +13,10 @@ class DeviceGroup(groupId: String) extends Actor with ActorLogging {
   import DeviceGroup._
   override def receive: Receive = groupReceiver(Map(), Map())
 
+  override def preStart(): Unit = log.info("DeviceGroup {} started", groupId)
+
+  override def postStop(): Unit = log.info("DeviceGroup {} stopped", groupId)
+
   def groupReceiver(deviceIdToActor: Map[String, ActorRef], actorToDeviceId: Map[ActorRef, String]): Receive = {
     // Request is this this groupId
     case trackMsg @ DeviceManager.RequestTrackDevice(`groupId`, _) =>
@@ -47,6 +51,5 @@ class DeviceGroup(groupId: String) extends Actor with ActorLogging {
       val newActorToDeviceId = actorToDeviceId - deviceActor
 
       context.become(groupReceiver(newDeviceIdToActor, newActorToDeviceId))
-
   }
 }
