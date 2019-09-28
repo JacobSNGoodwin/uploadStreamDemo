@@ -33,7 +33,7 @@ object DeviceManager {
   final case class RequestDeviceUpload(requestId: Long, groupId: String, deviceId: String)
 
   // Response for case where group doesn't exist
-  final case class NoSuchGroup(message: String)
+  final case class NoSuchGroup(requestId: Long)
 
   // helper messages for getting actor ref from groupId string
   final case class RequestGroupRef(requestId: Long, groupId: String)

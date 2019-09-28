@@ -99,6 +99,17 @@ class DeviceGroupSpec extends TestKit(ActorSystem("DeviceGroupSpec"))
         probe.expectMsg(DeviceGroup.ReplyDeviceList(requestId = 1, Set("device2")))
       }
     }
+
+    "respond with no such device" in {
+      val probe = TestProbe()
+      val groupActor = system.actorOf(DeviceGroup.props("group"))
+
+      groupActor.tell(DeviceManager.RequestTrackDevice("group", "device1"), probe.ref)
+      probe.expectMsg(DeviceManager.DeviceRegistered)
+
+      groupActor.tell(DeviceManager.RequestDeviceRecord(1L, "group", "device2"), probe.ref)
+      probe.expectMsg(DeviceGroup.NoSuchDevice(1L))
+    }
   }
 
 }

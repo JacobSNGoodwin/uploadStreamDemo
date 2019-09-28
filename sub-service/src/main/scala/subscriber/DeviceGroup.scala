@@ -10,7 +10,7 @@ object DeviceGroup {
   final case class ReplyDeviceList(requestId: Long, ids: Set[String])
 
   // Response for case where device doesn't exist
-  final case class NoSuchDevice(message: String)
+  final case class NoSuchDevice(requestId: Long)
 }
 class DeviceGroup(groupId: String) extends Actor with ActorLogging {
   import DeviceGroup._
@@ -40,9 +40,19 @@ class DeviceGroup(groupId: String) extends Actor with ActorLogging {
 
           context.become(groupReceiver(newDeviceIdToActor, newActorToDeviceId))
       }
-    case DeviceManager.RequestTrackDevice(groupId, deviceId) =>
+    case DeviceManager.RequestTrackDevice(groupId, _) =>
       // should not receive this message unless parent's list of groups goes wonky
       log.warning("Ignoring TrackDevice request for {}. This actor is responsible for {}.", groupId, this.groupId)
+    case recordMsg @ DeviceManager.RequestDeviceRecord(requestId, `groupId`, _) =>
+      deviceIdToActor.get(recordMsg.deviceId) match {
+        case Some(deviceActor) =>
+          log.info("Forwarding RequestDeviceRecord to {}", deviceActor)
+          deviceActor.forward(recordMsg)
+        case None =>
+          log.info("The groupId '{}' has no deviceId '{}'", groupId, recordMsg.deviceId)
+          sender() ! NoSuchDevice(requestId)
+
+      }
     case RequestDeviceList(requestId) =>
       sender() ! ReplyDeviceList(requestId, deviceIdToActor.keySet)
     case Terminated(deviceActor) =>
