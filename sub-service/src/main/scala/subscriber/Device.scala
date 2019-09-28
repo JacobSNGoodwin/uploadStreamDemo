@@ -1,5 +1,7 @@
 package subscriber
 
+import java.io.File
+
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import akka.util.Timeout
 
@@ -95,6 +97,7 @@ class Device(groupId: String, deviceId: String) extends Actor with ActorLogging 
     case FileActor.FileUploadResponse(requestId, filePath, originalSender, _) =>
       log.info("File at path '{}' in request '{}' has been successfully uploaded", filePath, requestId)
       originalSender ! UploadFilesResponse(requestId)
+      new File(filePath).delete()
       context.become(deviceReceive(recordings - filePath))
     case _ =>
       log.warning("Actor cannot handle message")
