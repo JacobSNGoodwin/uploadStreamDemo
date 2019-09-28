@@ -4,7 +4,8 @@ import akka.actor.ActorSystem
 import akka.testkit.{ImplicitSender, TestKit, TestProbe}
 import akka.util.Timeout
 import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpecLike}
-import subscriber.Device.{ReadFiles, RecordFileResponse}
+import subscriber.Device._
+import subscriber.FileActor._
 
 import scala.concurrent.duration._
 
@@ -85,6 +86,26 @@ class DeviceSpec extends TestKit(ActorSystem("DeviceSpec"))
         s"./file-storage/$groupId-$deviceId-1.txt",
         s"./file-storage/$groupId-$deviceId-2.txt",
       )))
+    }
+
+    "respond to successful file upload" in {
+      val groupId = "0002"
+      val deviceId = "0003"
+      val probe = TestProbe()
+
+      val deviceActor = system.actorOf(Device.props(groupId, deviceId))
+
+      implicit val timeout: Timeout = Timeout(3.second)
+
+      deviceActor.tell(DeviceManager.RequestDeviceRecord(1L, groupId, deviceId), probe.ref)
+      probe.expectMsgType[Device.RecordFileResponse]
+      deviceActor.tell(DeviceManager.RequestDeviceRecord(2L, groupId, deviceId), probe.ref)
+      probe.expectMsgType[Device.RecordFileResponse] // to make sure we have responses before reading files
+
+      deviceActor.tell(DeviceManager.RequestDeviceUpload(1L, groupId, deviceId), probe.ref)
+
+      val responseMessages = probe.receiveN(2, 15.seconds): Seq[AnyRef]
+      responseMessages should ===(Seq(Device.UploadFilesResponse(1L), Device.UploadFilesResponse(1L)))
     }
 
   }

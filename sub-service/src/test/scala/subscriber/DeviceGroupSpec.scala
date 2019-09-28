@@ -100,7 +100,7 @@ class DeviceGroupSpec extends TestKit(ActorSystem("DeviceGroupSpec"))
       }
     }
 
-    "respond with no such device" in {
+    "respond with no such device for RequestDeviceRecord and RequestDeviceUpload" in {
       val probe = TestProbe()
       val groupActor = system.actorOf(DeviceGroup.props("group"))
 

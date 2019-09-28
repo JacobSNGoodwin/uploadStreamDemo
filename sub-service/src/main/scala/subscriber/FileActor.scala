@@ -22,8 +22,8 @@ object FileActor {
   case class FileRecorded(requestId: Long, filePath: String, originalRequester: ActorRef)
   case class FileRecordedFailed(originalRequester: ActorRef)
 
-  case class FileUpload(requestId: Long, filePath: String)
-  case class FileUploadResponse(requestId: Long, storageId: String)
+  case class FileUpload(requestId: Long, filePath: String, originalRequester: ActorRef)
+  case class FileUploadResponse(requestId: Long, filePath: String, originalRequester: ActorRef, storageObject: StorageObject)
   case object FileUploadError
 }
 class FileActor extends Actor with ActorLogging {
@@ -60,7 +60,7 @@ class FileActor extends Actor with ActorLogging {
               FileRecordedFailed(originalRequester)
           }
         }).pipeTo(sender())
-    case FileUpload(requestId, filePath) =>
+    case FileUpload(requestId, filePath, originalRequester) =>
       log.info("Attempting file upload to bucket '{}' for the following file path: '{}'", bucketName, filePath)
       val file = Paths.get(filePath)
       val byteStringSource = FileIO.fromPath(file, ChunkSize)
@@ -70,7 +70,7 @@ class FileActor extends Actor with ActorLogging {
           .withAttributes(GCStorageAttributes.settings(newPrivateKeySettings))
       val result: Future[StorageObject] = byteStringSource.runWith(sink)
       result.map(storageObject => {
-        FileUploadResponse(requestId, storageObject.id)
+        FileUploadResponse(requestId, filePath, originalRequester, storageObject)
       }).pipeTo(sender())
   }
 }

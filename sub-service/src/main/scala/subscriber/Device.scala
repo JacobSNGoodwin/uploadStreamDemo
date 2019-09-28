@@ -29,9 +29,7 @@ object Device {
 }
 
 class Device(groupId: String, deviceId: String) extends Actor with ActorLogging {
-
   import Device._
-  import FileActor._
 
   // implicits for ask pattern
   implicit val timeout: Timeout = Timeout(5.second)
@@ -64,7 +62,7 @@ class Device(groupId: String, deviceId: String) extends Actor with ActorLogging 
     case DeviceManager.RequestDeviceRecord(requestId, `groupId`,`deviceId`) =>
       log.info("Device received request to record data for request id '{}'", requestId)
       val path = s"./file-storage/$groupId-$deviceId-$requestId.txt"
-      fileActor ! Write(requestId, path, sender())
+      fileActor ! FileActor.Write(requestId, path, sender())
     case ReadFiles(requestId) =>
       if (recordings.isEmpty) {
         log.info("Actor does not yet have available file")
@@ -86,6 +84,18 @@ class Device(groupId: String, deviceId: String) extends Actor with ActorLogging 
       log.warning("Failed to write file")
       originalSender ! RecordFileError("FileWriteFailure")
     // UPLOADING FILES
+    case DeviceManager.RequestDeviceUpload(requestId, `groupId`, `deviceId`) =>
+      if (recordings.isEmpty) {
+        log.info("Device '{}' has no files to upload", deviceId)
+      } else {
+        for (filePath <- recordings) {
+          fileActor ! FileActor.FileUpload(requestId, filePath, sender())
+        }
+      }
+    case FileActor.FileUploadResponse(requestId, filePath, originalSender, _) =>
+      log.info("File at path '{}' in request '{}' has been successfully uploaded", filePath, requestId)
+      originalSender ! UploadFilesResponse(requestId)
+      context.become(deviceReceive(recordings - filePath))
     case _ =>
       log.warning("Actor cannot handle message")
       sender() ! ReadFilesError("UnknownMessageType")

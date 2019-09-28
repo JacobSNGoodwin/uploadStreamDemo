@@ -38,7 +38,7 @@ class FileActorSpec extends TestKit(ActorSystem("FileActorSpec"))
       probe.expectMsg(FileRecorded(54321L, filePath, fileActor))
 
 
-      fileActor.tell(FileUpload(12345L, filePath), probe.ref)
+      fileActor.tell(FileUpload(12345L, filePath, fileActor), probe.ref)
       probe.expectMsgType[FileUploadResponse](15.seconds)
 
     }
