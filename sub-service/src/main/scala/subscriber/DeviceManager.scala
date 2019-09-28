@@ -27,10 +27,10 @@ object DeviceManager {
   final case class ReplyGroupList(requestId: Long, ids: Set[String])
 
   // Message for requesting to record a file for a device
-  final case class RequestDeviceRecord(groupId: String, deviceId: String)
+  final case class RequestDeviceRecord(requestId: Long, groupId: String, deviceId: String)
 
   // Message for requesting to upload a file for a Device
-  final case class RequestDeviceUpload(groupId: String, deviceId: String)
+  final case class RequestDeviceUpload(requestId: Long, groupId: String, deviceId: String)
 
   // Response for case where group doesn't exist
   final case class NoSuchGroup(message: String)

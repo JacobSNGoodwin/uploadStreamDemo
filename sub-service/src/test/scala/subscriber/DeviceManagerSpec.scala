@@ -71,8 +71,8 @@ class DeviceManagerSpec extends TestKit(ActorSystem("DeviceGroupSpec"))
       managerActor.tell(DeviceManager.RequestGroupList(requestId = 0), probe.ref)
       probe.expectMsg(DeviceManager.ReplyGroupList(requestId = 0, Set("group1", "group2")))
 
-      managerActor.tell(DeviceManager.RequestActorRef(1L, "group1"), probe.ref)
-      val response = probe.expectMsgType[DeviceManager.ReplyActorRef]
+      managerActor.tell(DeviceManager.RequestGroupRef(1L, "group1"), probe.ref)
+      val response = probe.expectMsgType[DeviceManager.ReplyGroupRef]
 
       val toShutDown = response.groupRef
 

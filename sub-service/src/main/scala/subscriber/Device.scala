@@ -13,7 +13,6 @@ object Device {
   def props(groupId: String, deviceId: String): Props = Props(new Device(groupId, deviceId))
 
   // file recording messages
-  final case class RecordFile(requestId: Long)
   final case class RecordFileResponse(requestId: Long, filePath: String)
   final case class RecordFileError(reason: String)
 
@@ -62,8 +61,8 @@ class Device(groupId: String, deviceId: String) extends Actor with ActorLogging 
         this.groupId,
         this.deviceId)
     // CREATE AND LISTING FILES
-    case RecordFile(requestId) =>
-      log.info("Recording Data")
+    case DeviceManager.RequestDeviceRecord(requestId, `groupId`,`deviceId`) =>
+      log.info("Device received request to record data for request id '{}'", requestId)
       val path = s"./file-storage/$groupId-$deviceId-$requestId.txt"
       fileActor ! Write(requestId, path, sender())
     case ReadFiles(requestId) =>

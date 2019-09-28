@@ -58,7 +58,7 @@ class DeviceSpec extends TestKit(ActorSystem("DeviceSpec"))
       val deviceActor = system.actorOf(Device.props(groupId, deviceId))
       implicit val timeout: Timeout = Timeout(3.second)
 
-      deviceActor.tell(Device.RecordFile(2L), probe.ref)
+      deviceActor.tell(DeviceManager.RequestDeviceRecord(2L, groupId, deviceId), probe.ref)
       val response = probe.expectMsgType[RecordFileResponse]
       response.requestId should===(2L)
       response.filePath should===(s"./file-storage/$groupId-$deviceId-2.txt")
@@ -73,9 +73,9 @@ class DeviceSpec extends TestKit(ActorSystem("DeviceSpec"))
 
       implicit val timeout: Timeout = Timeout(3.second)
 
-      deviceActor.tell(Device.RecordFile(1L), probe.ref)
+      deviceActor.tell(DeviceManager.RequestDeviceRecord(1L, groupId, deviceId), probe.ref)
       probe.expectMsgType[Device.RecordFileResponse]
-      deviceActor.tell(Device.RecordFile(2L), probe.ref)
+      deviceActor.tell(DeviceManager.RequestDeviceRecord(2L, groupId, deviceId), probe.ref)
       probe.expectMsgType[Device.RecordFileResponse] // to make sure we have responses before reading files
 
       deviceActor.tell(Device.ReadFiles(1L), probe.ref)
