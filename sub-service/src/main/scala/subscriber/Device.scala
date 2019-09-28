@@ -18,6 +18,7 @@ object Device {
   final case class RecordFileError(reason: String)
 
   // file reading (respond with path) messages
+  // so far only used in tests
   final case class ReadFiles(requestId: Long)
   final case class ReadFilesResponse(requestId: Long, filePaths: Option[Set[String]]) // holds path to data file
   final case class ReadFilesError(reason: String)

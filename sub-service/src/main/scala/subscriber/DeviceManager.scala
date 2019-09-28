@@ -26,9 +26,20 @@ object DeviceManager {
   final case class RequestGroupList(requestId: Long)
   final case class ReplyGroupList(requestId: Long, ids: Set[String])
 
-  final case class RequestActorRef(requestId: Long, groupId: String)
-  final case class ReplyActorRef(requestId: Long, groupRef: ActorRef)
+  // Message for requesting to record a file for a device
+  final case class RequestDeviceRecord(groupId: String, deviceId: String)
 
+  // Message for requesting to upload a file for a Device
+  final case class RequestDeviceUpload(groupId: String, deviceId: String)
+
+  // Response for case where group doesn't exist
+  final case class NoSuchGroup(message: String)
+
+  // helper messages for getting actor ref from groupId string
+  final case class RequestGroupRef(requestId: Long, groupId: String)
+  final case class ReplyGroupRef(requestId: Long, groupRef: ActorRef)
+
+  // sent from device on successful registration
   case object DeviceRegistered
 
 }
@@ -73,8 +84,8 @@ class DeviceManager(ackWith: Any) extends Actor with ActorLogging {
 
     case RequestGroupList(requestId) =>
       sender() ! ReplyGroupList(requestId, groupIdToActor.keySet)
-    case RequestActorRef(requestId, groupId) =>
-      sender() ! ReplyActorRef(requestId, groupIdToActor(groupId))
+    case RequestGroupRef(requestId, groupId) =>
+      sender() ! ReplyGroupRef(requestId, groupIdToActor(groupId))
     case Terminated(groupActor) =>
         val groupId = actorToGroupId(groupActor)
         log.info("Device group actor for {} has been terminated", groupId)
