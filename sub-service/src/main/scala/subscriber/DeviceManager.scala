@@ -7,9 +7,10 @@ import akka.stream.alpakka.googlecloud.pubsub.ReceivedMessage
 import spray.json.{DefaultJsonProtocol, JsonParser}
 
 // configure spray JSON to send JSON message with deviceId and groupId
-case class DeviceTarget(deviceId: String, groupId: String)
+// consider declaring globally since used in both pub-client and sub-service
+case class DeviceRequest(deviceId: String, groupId: String, requestType: String)
 object CustomJsonProtocol extends DefaultJsonProtocol {
-  implicit val deviceFormat = jsonFormat2(DeviceTarget)
+  implicit val requestFormat = jsonFormat3(DeviceRequest)
 }
 
 object DeviceManager {
@@ -59,7 +60,7 @@ class DeviceManager(ackWith: Any) extends Actor with ActorLogging {
       log.info("Stream initialized!")
       sender() ! Ack // ack to allow the stream to proceed sending more elements
     case ReceivedMessage(id, message) =>
-      val requestedDevice = JsonParser(new String(Base64.getDecoder.decode(message.data))).convertTo[DeviceTarget]
+      val requestedDevice = JsonParser(new String(Base64.getDecoder.decode(message.data))).convertTo[DeviceRequest]
       log.info("Received request for deviceId: {} and groupId: {}", requestedDevice.deviceId, requestedDevice.groupId)
       sender() ! Ack // ack to allow the stream to proceed sending more elements
     case StreamCompleted =>
