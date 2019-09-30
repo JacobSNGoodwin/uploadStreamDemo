@@ -53,6 +53,16 @@ class DeviceGroup(groupId: String) extends Actor with ActorLogging {
           sender() ! NoSuchDevice(requestId)
 
       }
+    case uploadMsg @ DeviceManager.RequestDeviceUpload(requestId, `groupId`, _) =>
+      deviceIdToActor.get(uploadMsg.deviceId) match {
+        case Some(deviceActor) =>
+          log.info("Forwarding RequestDeviceUpload to {}", deviceActor)
+          deviceActor.forward(uploadMsg)
+        case None =>
+          log.info("The groupId '{}' has no deviceId '{}'", groupId, uploadMsg.deviceId)
+          sender() ! NoSuchDevice(requestId)
+      }
+
     case RequestDeviceList(requestId) =>
       sender() ! ReplyDeviceList(requestId, deviceIdToActor.keySet)
     case Terminated(deviceActor) =>

@@ -109,6 +109,9 @@ class DeviceGroupSpec extends TestKit(ActorSystem("DeviceGroupSpec"))
 
       groupActor.tell(DeviceManager.RequestDeviceRecord(1L, "group", "device2"), probe.ref)
       probe.expectMsg(DeviceGroup.NoSuchDevice(1L))
+
+      groupActor.tell(DeviceManager.RequestDeviceUpload(2L, "group", "device2"), probe.ref)
+      probe.expectMsg(DeviceGroup.NoSuchDevice(2L))
     }
   }
 
