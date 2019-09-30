@@ -26,11 +26,19 @@ object Main extends App {
   val projectId = "uploadstream"
   val config = PubSubConfig(projectId, clientEmail, privateKey)
 
+  val requestTypes = Map[String, String](
+    "u" -> "upload",
+    "U" -> "upload",
+    "r" -> "record",
+    "R" -> "record"
+  )
+
+
   // configure spray JSON to send JSON message with deviceId and groupId
-  case class Device(deviceId: String, groupId: String)
+  case class DeviceRequest(deviceId: String, groupId: String, requestType: String)
 
   object CustomJsonProtocol extends DefaultJsonProtocol {
-    implicit val deviceFormat = jsonFormat2(Device)
+    implicit val deviceRequestFormat = jsonFormat3(DeviceRequest)
   }
 
   import CustomJsonProtocol._ // to provide implicits
@@ -85,11 +93,14 @@ object Main extends App {
 
     @tailrec
     def getNewMessage(): Unit = {
-      println(s"A message will be created and sent to '${topic}' based on the groupId and deviceId entered below.")
+      println(s"A message will be created and sent to '${topic}' based on the groupId, deviceId, and messageType entered below.")
       val groupId = io.StdIn.readLine("Please provide the groupId  > ")
       val deviceId = io.StdIn.readLine("Please provide the deviceId > ")
+      val requestType = io.StdIn.readLine("Record file -  Enter 'r' \nUpload File - Enter 'u' or other \n > ")
 
-      val message= Device(deviceId, groupId).toJson.compactPrint
+      val mappedRequestType = requestTypes.getOrElse(requestType, "upload")
+
+      val message= DeviceRequest(deviceId, groupId, mappedRequestType).toJson.compactPrint
 
       queue.offer(message).map {
         case QueueOfferResult.Enqueued    => // println(s"enqueued message: $message, topic: $topic")
