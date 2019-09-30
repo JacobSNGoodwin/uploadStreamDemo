@@ -18,12 +18,12 @@ import scala.util.{Failure, Random, Success}
 
 // Actor for handling async file reading and writing
 object FileActor {
-  case class Write(requestId: Long, filePath: String, originalRequester: ActorRef)
-  case class FileRecorded(requestId: Long, filePath: String, originalRequester: ActorRef)
+  case class Write(requestId: String, filePath: String, originalRequester: ActorRef)
+  case class FileRecorded(requestId: String, filePath: String, originalRequester: ActorRef)
   case class FileRecordedFailed(originalRequester: ActorRef)
 
-  case class FileUpload(requestId: Long, filePath: String, originalRequester: ActorRef)
-  case class FileUploadResponse(requestId: Long, filePath: String, originalRequester: ActorRef, storageObject: StorageObject)
+  case class FileUpload(requestId: String, filePath: String, originalRequester: ActorRef)
+  case class FileUploadResponse(requestId: String, filePath: String, originalRequester: ActorRef, storageObject: StorageObject)
   case object FileUploadError
 }
 class FileActor extends Actor with ActorLogging {
@@ -46,7 +46,7 @@ class FileActor extends Actor with ActorLogging {
   override def postStop(): Unit = log.info("File Actor stopped")
 
   override def receive: Receive = {
-    case Write(requestId: Long, filePath: String, originalRequester: ActorRef) =>
+    case Write(requestId: String, filePath: String, originalRequester: ActorRef) =>
       log.info("Writing file for requestId: {} to filePath: {}", requestId, filePath)
       val file = Paths.get(filePath)
       val text: Source[String, NotUsed] = Source(1 to 10).map(_ => Random.alphanumeric.take(100 * 1024).mkString) // source of 1kB chunks

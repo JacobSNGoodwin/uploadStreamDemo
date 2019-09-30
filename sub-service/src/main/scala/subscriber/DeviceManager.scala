@@ -14,37 +14,31 @@ object CustomJsonProtocol extends DefaultJsonProtocol {
 }
 
 object DeviceManager {
-  def props(ackWith: Any): Props = Props(new DeviceManager(ackWith: Any))
-
-  // messages for stream handling
-  case object Ack
-  case object StreamInitialized
-  case object StreamCompleted
-  final case class StreamFailure(ex: Throwable)
+  def props: Props = Props(new DeviceManager)
 
   // Messages for Device management
   final case class RequestTrackDevice(groupId: String, deviceId: String)
-  final case class RequestGroupList(requestId: Long)
-  final case class ReplyGroupList(requestId: Long, ids: Set[String])
+  final case class RequestGroupList(requestId: String)
+  final case class ReplyGroupList(requestId: String, ids: Set[String])
 
   // Message for requesting to record a file for a device
-  final case class RequestDeviceRecord(requestId: Long, groupId: String, deviceId: String)
+  final case class RequestDeviceRecord(requestId: String, groupId: String, deviceId: String)
 
   // Message for requesting to upload a file for a Device
-  final case class RequestDeviceUpload(requestId: Long, groupId: String, deviceId: String)
+  final case class RequestDeviceUpload(requestId: String, groupId: String, deviceId: String)
 
   // Response for case where group doesn't exist
-  final case class NoSuchGroup(requestId: Long)
+  final case class NoSuchGroup(requestId: String)
 
   // helper messages for getting actor ref from groupId string
-  final case class RequestGroupRef(requestId: Long, groupId: String)
-  final case class ReplyGroupRef(requestId: Long, groupRef: ActorRef)
+  final case class RequestGroupRef(requestId: String, groupId: String)
+  final case class ReplyGroupRef(requestId: String, groupRef: ActorRef)
 
   // sent from device on successful registration
   case object DeviceRegistered
 
 }
-class DeviceManager(ackWith: Any) extends Actor with ActorLogging {
+class DeviceManager extends Actor with ActorLogging {
   import DeviceManager._
   import CustomJsonProtocol._ // to provide implicits
 
@@ -55,19 +49,6 @@ class DeviceManager(ackWith: Any) extends Actor with ActorLogging {
   override def receive: Receive = managerReceiver(Map(), Map())
 
   def managerReceiver(groupIdToActor: Map[String, ActorRef], actorToGroupId: Map[ActorRef, String]): Receive = {
-    // handle incoming messages from GC PubSub
-    case StreamInitialized =>
-      log.info("Stream initialized!")
-      sender() ! Ack // ack to allow the stream to proceed sending more elements
-    case ReceivedMessage(id, message) =>
-      val requestedDevice = JsonParser(new String(Base64.getDecoder.decode(message.data))).convertTo[DeviceRequest]
-      log.info("Received request for deviceId: {} and groupId: {}", requestedDevice.deviceId, requestedDevice.groupId)
-      sender() ! Ack // ack to allow the stream to proceed sending more elements
-    case StreamCompleted =>
-      log.info("Stream completed!")
-    case StreamFailure(ex) =>
-      log.error(ex, "Stream failed!")
-
     // handle device registration
     case trackMsg @ RequestTrackDevice(groupId, _) =>
       groupIdToActor.get(groupId) match {

@@ -10,7 +10,7 @@ object DeviceGroup {
   final case class ReplyDeviceList(requestId: Long, ids: Set[String])
 
   // Response for case where device doesn't exist
-  final case class NoSuchDevice(requestId: Long)
+  final case class NoSuchDevice(requestId: String)
 }
 class DeviceGroup(groupId: String) extends Actor with ActorLogging {
   import DeviceGroup._

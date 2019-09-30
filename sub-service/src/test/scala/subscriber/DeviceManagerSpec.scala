@@ -17,7 +17,7 @@ class DeviceManagerSpec extends TestKit(ActorSystem("DeviceGroupSpec"))
   "A device manager" should {
     "be able to register a device group" in {
       val probe = TestProbe()
-      val managerActor = system.actorOf(DeviceManager.props(DeviceManager.Ack))
+      val managerActor = system.actorOf(DeviceManager.props, "deviceManager1")
 
       managerActor.tell(DeviceManager.RequestTrackDevice("group", "device1"), probe.ref)
       probe.expectMsg(DeviceManager.DeviceRegistered)
@@ -31,7 +31,7 @@ class DeviceManagerSpec extends TestKit(ActorSystem("DeviceGroupSpec"))
 
     "return same actor for same deviceId" in {
       val probe = TestProbe()
-      val managerActor = system.actorOf(DeviceManager.props(DeviceManager.Ack))
+      val managerActor = system.actorOf(DeviceManager.props, "deviceManager2")
 
       managerActor.tell(DeviceManager.RequestTrackDevice("group", "device1"), probe.ref)
       probe.expectMsg(DeviceManager.DeviceRegistered)
@@ -46,7 +46,7 @@ class DeviceManagerSpec extends TestKit(ActorSystem("DeviceGroupSpec"))
 
     "be able to list active groups" in {
       val probe = TestProbe()
-      val managerActor = system.actorOf(DeviceManager.props(DeviceManager.Ack))
+      val managerActor = system.actorOf(DeviceManager.props, "deviceManager3")
 
       managerActor.tell(DeviceManager.RequestTrackDevice("group1", "device1"), probe.ref)
       probe.expectMsg(DeviceManager.DeviceRegistered)
@@ -54,13 +54,13 @@ class DeviceManagerSpec extends TestKit(ActorSystem("DeviceGroupSpec"))
       managerActor.tell(DeviceManager.RequestTrackDevice("group2", "device1"), probe.ref)
       probe.expectMsg(DeviceManager.DeviceRegistered)
 
-      managerActor.tell(DeviceManager.RequestGroupList(requestId = 0), probe.ref)
-      probe.expectMsg(DeviceManager.ReplyGroupList(requestId = 0, Set("group1", "group2")))
+      managerActor.tell(DeviceManager.RequestGroupList(requestId = "0"), probe.ref)
+      probe.expectMsg(DeviceManager.ReplyGroupList(requestId = "0", Set("group1", "group2")))
     }
 
     "be able to list active groups after one shuts down" in {
       val probe = TestProbe()
-      val managerActor = system.actorOf(DeviceManager.props(DeviceManager.Ack), "deviceManager")
+      val managerActor = system.actorOf(DeviceManager.props, "deviceManager4")
 
       managerActor.tell(DeviceManager.RequestTrackDevice("group1", "device1"), probe.ref)
       probe.expectMsg(DeviceManager.DeviceRegistered)
@@ -68,10 +68,10 @@ class DeviceManagerSpec extends TestKit(ActorSystem("DeviceGroupSpec"))
       managerActor.tell(DeviceManager.RequestTrackDevice("group2", "device1"), probe.ref)
       probe.expectMsg(DeviceManager.DeviceRegistered)
 
-      managerActor.tell(DeviceManager.RequestGroupList(requestId = 0), probe.ref)
-      probe.expectMsg(DeviceManager.ReplyGroupList(requestId = 0, Set("group1", "group2")))
+      managerActor.tell(DeviceManager.RequestGroupList(requestId = "0"), probe.ref)
+      probe.expectMsg(DeviceManager.ReplyGroupList(requestId = "0", Set("group1", "group2")))
 
-      managerActor.tell(DeviceManager.RequestGroupRef(1L, "group1"), probe.ref)
+      managerActor.tell(DeviceManager.RequestGroupRef("1", "group1"), probe.ref)
       val response = probe.expectMsgType[DeviceManager.ReplyGroupRef]
 
       val toShutDown = response.groupRef
@@ -83,8 +83,8 @@ class DeviceManagerSpec extends TestKit(ActorSystem("DeviceGroupSpec"))
       // using awaitAssert to retry because it might take longer for the groupActor
       // to see the Terminated, that order is undefined
       probe.awaitAssert {
-        managerActor.tell(DeviceManager.RequestGroupList(requestId = 1), probe.ref)
-        probe.expectMsg(DeviceManager.ReplyGroupList(requestId = 1, Set("group2")))
+        managerActor.tell(DeviceManager.RequestGroupList(requestId = "1"), probe.ref)
+        probe.expectMsg(DeviceManager.ReplyGroupList(requestId = "1", Set("group2")))
       }
     }
   }

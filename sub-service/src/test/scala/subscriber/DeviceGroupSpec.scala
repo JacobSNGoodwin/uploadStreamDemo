@@ -31,10 +31,10 @@ class DeviceGroupSpec extends TestKit(ActorSystem("DeviceGroupSpec"))
       deviceActor1 should !==(deviceActor2)
 
       // check devices are responding to messages
-      deviceActor1.tell(Device.ReadFiles(1), probe.ref)
-      probe.expectMsg(Device.ReadFilesResponse(1L, None))
-      deviceActor1.tell(Device.ReadFiles(1), probe.ref)
-      probe.expectMsg(Device.ReadFilesResponse(1L, None))
+      deviceActor1.tell(Device.ReadFiles("1"), probe.ref)
+      probe.expectMsg(Device.ReadFilesResponse("1", None))
+      deviceActor1.tell(Device.ReadFiles("1"), probe.ref)
+      probe.expectMsg(Device.ReadFilesResponse("1", None))
     }
 
     "ignore requests for wrong groupId" in {
@@ -107,11 +107,11 @@ class DeviceGroupSpec extends TestKit(ActorSystem("DeviceGroupSpec"))
       groupActor.tell(DeviceManager.RequestTrackDevice("group", "device1"), probe.ref)
       probe.expectMsg(DeviceManager.DeviceRegistered)
 
-      groupActor.tell(DeviceManager.RequestDeviceRecord(1L, "group", "device2"), probe.ref)
-      probe.expectMsg(DeviceGroup.NoSuchDevice(1L))
+      groupActor.tell(DeviceManager.RequestDeviceRecord("1", "group", "device2"), probe.ref)
+      probe.expectMsg(DeviceGroup.NoSuchDevice("1"))
 
-      groupActor.tell(DeviceManager.RequestDeviceUpload(2L, "group", "device2"), probe.ref)
-      probe.expectMsg(DeviceGroup.NoSuchDevice(2L))
+      groupActor.tell(DeviceManager.RequestDeviceUpload("2", "group", "device2"), probe.ref)
+      probe.expectMsg(DeviceGroup.NoSuchDevice("2"))
     }
   }
 

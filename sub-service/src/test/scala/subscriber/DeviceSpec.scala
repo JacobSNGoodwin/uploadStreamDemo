@@ -46,9 +46,9 @@ class DeviceSpec extends TestKit(ActorSystem("DeviceSpec"))
       val probe = TestProbe()
       val deviceActor = system.actorOf(Device.props("0001", "0001"))
 
-      deviceActor.tell(Device.ReadFiles(1), probe.ref)
+      deviceActor.tell(Device.ReadFiles("1"), probe.ref)
       val response = probe.expectMsgType[Device.ReadFilesResponse]
-      response.requestId should ===(1L)
+      response.requestId should ===("1")
       response.filePaths should ===(None)
     }
 
@@ -59,9 +59,9 @@ class DeviceSpec extends TestKit(ActorSystem("DeviceSpec"))
       val deviceActor = system.actorOf(Device.props(groupId, deviceId))
       implicit val timeout: Timeout = Timeout(3.second)
 
-      deviceActor.tell(DeviceManager.RequestDeviceRecord(2L, groupId, deviceId), probe.ref)
+      deviceActor.tell(DeviceManager.RequestDeviceRecord("2", groupId, deviceId), probe.ref)
       val response = probe.expectMsgType[RecordFileResponse]
-      response.requestId should===(2L)
+      response.requestId should===("2")
       response.filePath should===(s"./file-storage/$groupId-$deviceId-2.txt")
     }
 
@@ -74,14 +74,14 @@ class DeviceSpec extends TestKit(ActorSystem("DeviceSpec"))
 
       implicit val timeout: Timeout = Timeout(3.second)
 
-      deviceActor.tell(DeviceManager.RequestDeviceRecord(1L, groupId, deviceId), probe.ref)
+      deviceActor.tell(DeviceManager.RequestDeviceRecord("1", groupId, deviceId), probe.ref)
       probe.expectMsgType[Device.RecordFileResponse]
-      deviceActor.tell(DeviceManager.RequestDeviceRecord(2L, groupId, deviceId), probe.ref)
+      deviceActor.tell(DeviceManager.RequestDeviceRecord("2", groupId, deviceId), probe.ref)
       probe.expectMsgType[Device.RecordFileResponse] // to make sure we have responses before reading files
 
-      deviceActor.tell(Device.ReadFiles(1L), probe.ref)
+      deviceActor.tell(Device.ReadFiles("1"), probe.ref)
       val response = probe.expectMsgType[Device.ReadFilesResponse]
-      response.requestId should ===(1L)
+      response.requestId should ===("1")
       response.filePaths should ===(Some(Set(
         s"./file-storage/$groupId-$deviceId-1.txt",
         s"./file-storage/$groupId-$deviceId-2.txt",
@@ -97,15 +97,15 @@ class DeviceSpec extends TestKit(ActorSystem("DeviceSpec"))
 
       implicit val timeout: Timeout = Timeout(3.second)
 
-      deviceActor.tell(DeviceManager.RequestDeviceRecord(1L, groupId, deviceId), probe.ref)
+      deviceActor.tell(DeviceManager.RequestDeviceRecord("1", groupId, deviceId), probe.ref)
       probe.expectMsgType[Device.RecordFileResponse]
-      deviceActor.tell(DeviceManager.RequestDeviceRecord(2L, groupId, deviceId), probe.ref)
+      deviceActor.tell(DeviceManager.RequestDeviceRecord("2", groupId, deviceId), probe.ref)
       probe.expectMsgType[Device.RecordFileResponse] // to make sure we have responses before reading files
 
-      deviceActor.tell(DeviceManager.RequestDeviceUpload(1L, groupId, deviceId), probe.ref)
+      deviceActor.tell(DeviceManager.RequestDeviceUpload("1", groupId, deviceId), probe.ref)
 
       val responseMessages = probe.receiveN(2, 15.seconds): Seq[AnyRef]
-      responseMessages should ===(Seq(Device.UploadFilesResponse(1L), Device.UploadFilesResponse(1L)))
+      responseMessages should ===(Seq(Device.UploadFilesResponse("1"), Device.UploadFilesResponse("1")))
     }
 
   }

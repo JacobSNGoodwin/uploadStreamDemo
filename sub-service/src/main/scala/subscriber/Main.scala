@@ -49,17 +49,18 @@ object Main extends App {
     .to(ackSink)
 
   /*
-    Create DeviceManager as an Actor sink
+    Create DeviceManager and a MessageReceiver (which acts as a sink for PubSub) with reference to Device manager
    */
 
-  val messageReceiver = system.actorOf(DeviceManager.props(ackWith = DeviceManager.Ack))
+  val deviceManager = system.actorOf(DeviceManager.props, "deviceManager")
+  val messageReceiver = system.actorOf(MessageReceiver.props(MessageReceiver.Ack, deviceManager))
 
   val messageReceiverSink = Sink.actorRefWithAck(
     messageReceiver,
-    onInitMessage = DeviceManager.StreamInitialized,
-    ackMessage = DeviceManager.Ack,
-    onCompleteMessage = DeviceManager.StreamCompleted,
-    onFailureMessage = (ex: Throwable) => DeviceManager.StreamFailure(ex)
+    onInitMessage = MessageReceiver.StreamInitialized,
+    ackMessage = MessageReceiver.Ack,
+    onCompleteMessage = MessageReceiver.StreamCompleted,
+    onFailureMessage = (ex: Throwable) => MessageReceiver.StreamFailure(ex)
   )
 
   // run subscription message through ackSink and to DeviceManager Actor
@@ -73,9 +74,11 @@ object Main extends App {
 
   try {
     val supervisor = system.actorOf(SupervisingActor.props())
-    messageReceiver.tell(DeviceManager.RequestTrackDevice("0001", "0001"), supervisor)
-    messageReceiver.tell(DeviceManager.RequestTrackDevice("0001", "0002"), supervisor)
-    messageReceiver.tell(DeviceManager.RequestTrackDevice("0002", "0003"), supervisor)
+    deviceManager.tell(DeviceManager.RequestTrackDevice("0001", "0001"), supervisor)
+    deviceManager.tell(DeviceManager.RequestTrackDevice("0001", "0002"), supervisor)
+    deviceManager.tell(DeviceManager.RequestTrackDevice("0002", "0001"), supervisor)
+    deviceManager.tell(DeviceManager.RequestTrackDevice("0002", "0002"), supervisor)
+    deviceManager.tell(DeviceManager.RequestTrackDevice("0002", "0003"), supervisor)
     io.StdIn.readLine()
   } finally {
     system.terminate()

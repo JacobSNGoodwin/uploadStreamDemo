@@ -15,18 +15,18 @@ object Device {
   def props(groupId: String, deviceId: String): Props = Props(new Device(groupId, deviceId))
 
   // file recording messages
-  final case class RecordFileResponse(requestId: Long, filePath: String)
+  final case class RecordFileResponse(requestId: String, filePath: String)
   final case class RecordFileError(reason: String)
 
   // file reading (respond with path) messages
   // so far only used in tests
-  final case class ReadFiles(requestId: Long)
-  final case class ReadFilesResponse(requestId: Long, filePaths: Option[Set[String]]) // holds path to data file
+  final case class ReadFiles(requestId: String)
+  final case class ReadFilesResponse(requestId: String, filePaths: Option[Set[String]]) // holds path to data file
   final case class ReadFilesError(reason: String)
 
   // file uploading/streaming to GC
-  final case class UploadFiles(requestId: Long)
-  final case class UploadFilesResponse(requestId: Long)
+  final case class UploadFiles(requestId: String)
+  final case class UploadFilesResponse(requestId: String)
   final case class UploadFilesError(reason: String)
 }
 

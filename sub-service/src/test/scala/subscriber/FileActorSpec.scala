@@ -23,8 +23,8 @@ class FileActorSpec extends TestKit(ActorSystem("FileActorSpec"))
       val fileActor = system.actorOf(Props[FileActor])
 
       implicit val timeout: Timeout = Timeout(3.second)
-      fileActor.tell(Write(54321L, "./file-storage/test-file.txt", fileActor), probe.ref)
-      probe.expectMsg(FileRecorded(54321L, "./file-storage/test-file.txt", fileActor))
+      fileActor.tell(Write("54321", "./file-storage/test-file.txt", fileActor), probe.ref)
+      probe.expectMsg(FileRecorded("54321", "./file-storage/test-file.txt", fileActor))
     }
 
     "return a response on file upload" in {
@@ -34,11 +34,11 @@ class FileActorSpec extends TestKit(ActorSystem("FileActorSpec"))
       val filePath = "./file-storage/test-file.txt"
 
 
-      fileActor.tell(Write(54321L, filePath, fileActor), probe.ref)
-      probe.expectMsg(FileRecorded(54321L, filePath, fileActor))
+      fileActor.tell(Write("54321", filePath, fileActor), probe.ref)
+      probe.expectMsg(FileRecorded("54321", filePath, fileActor))
 
 
-      fileActor.tell(FileUpload(12345L, filePath, fileActor), probe.ref)
+      fileActor.tell(FileUpload("12345", filePath, fileActor), probe.ref)
       probe.expectMsgType[FileUploadResponse](15.seconds)
 
     }
