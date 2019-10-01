@@ -18,8 +18,10 @@ This client is used to publish messages to Google Cloud PubSub. It prompts the u
 
 ## sub-service
 
-### Waiting for Alpakka release
+### Waiting for next Alpakka release
 There is currently a compatibility issue between Google Cloud Storage and PubSub in that they use incompatible jwt libraries. Instead of looking for a workaround, I am waiting for the next Alpakka release.
+
+Currently, the Publisher client works, and the tests in the Subscriber client will work as they only require the Google Cloud Storage dependency. However, the Main application on the sub-service requires both PubSub and Cloud Storage.
 
 From the sbt console, run
 
