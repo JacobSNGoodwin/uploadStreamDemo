@@ -17,6 +17,10 @@ pub/run
 This client is used to publish messages to Google Cloud PubSub. It prompts the user for a topic to publish to, and then the user can publish messages to that topic. For now, the message consists of a simple _deviceId_ and _groupId_ representing a device in an IOT System (represented in the sub-service).
 
 ## sub-service
+
+### Waiting for Alpakka release
+There is currently a compatibility issue between Google Cloud Storage and PubSub in that they use incompatible jwt libraries. Instead of looking for a workaround, I am waiting for the next Alpakka release.
+
 From the sbt console, run
 
 ```$xslt
