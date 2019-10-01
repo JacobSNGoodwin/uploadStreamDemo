@@ -25,6 +25,7 @@ object Main extends App {
   /*
     Configure GC PubSub subscription
    */
+
   val privateKey = system.settings.config.getString("gcConfig.key").replace("\\n", "\n")
   val clientEmail = "uploadstreamdemo@uploadstream.iam.gserviceaccount.com"
   val projectId = "uploadstream"
@@ -73,12 +74,10 @@ object Main extends App {
   // based on messages from another service. We keep this outside of the app for this demo.
 
   try {
-    val supervisor = system.actorOf(SupervisingActor.props())
-    deviceManager.tell(DeviceManager.RequestTrackDevice("0001", "0001"), supervisor)
-    deviceManager.tell(DeviceManager.RequestTrackDevice("0001", "0002"), supervisor)
-    deviceManager.tell(DeviceManager.RequestTrackDevice("0002", "0001"), supervisor)
-    deviceManager.tell(DeviceManager.RequestTrackDevice("0002", "0002"), supervisor)
-    deviceManager.tell(DeviceManager.RequestTrackDevice("0002", "0003"), supervisor)
+//    val supervisor = system.actorOf(SupervisingActor.props())
+    deviceManager.tell(DeviceManager.RequestTrackDevice("0001", "0001"), messageReceiver)
+    deviceManager.tell(DeviceManager.RequestTrackDevice("0001", "0002"), messageReceiver)
+    deviceManager.tell(DeviceManager.RequestTrackDevice("0002", "0001"), messageReceiver)
     io.StdIn.readLine()
   } finally {
     system.terminate()
