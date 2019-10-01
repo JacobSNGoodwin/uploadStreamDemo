@@ -32,10 +32,15 @@ class MessageReceiver(ackWith: Any, deviceManagerRef: ActorRef) extends Actor wi
       log.info("Received {} request for deviceId: {} and groupId: {}", requestedDevice.requestType, requestedDevice.deviceId, requestedDevice.groupId)
       if (requestedDevice.requestType == "record")
         deviceManagerRef ! DeviceManager.RequestDeviceRecord(UUID.randomUUID().toString, requestedDevice.groupId, requestedDevice.deviceId)
+      if (requestedDevice.requestType == "upload")
+        deviceManagerRef ! DeviceManager.RequestDeviceUpload(UUID.randomUUID().toString, requestedDevice.groupId, requestedDevice.deviceId)
       sender() ! Ack // ack to allow the stream to proceed sending more elements
     case StreamCompleted =>
       log.info("Stream completed!")
     case StreamFailure(ex) =>
       log.error(ex, "Stream failed!")
+    case other =>
+      log.info("Received message in Message Receiver: {}", other)
+
   }
 }
